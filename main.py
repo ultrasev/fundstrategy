@@ -1,19 +1,15 @@
-import httpx
 import asyncio
-from datetime import datetime
-from typing import TypedDict, List, Callable
-import json
-from abc import ABC, abstractmethod
-import math
-import pandas as pd
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
-from app.data.fetch import fetch_fund_data
+import pandas as pd
 from app.models.strategy import (FundData, Investment, fixed_drop_strategy, dynamic_drop_strategy,
                                  periodic_strategy, ma_cross_strategy, rsi_strategy, enhanced_rsi_strategy,
                                  calculate_investment,
                                  value_averaging_strategy)
+
+from app.workers.draw import draw_strategy_comparison
+from app.workers.text import generate_markdown_table
+from app.data.fetch import fetch_fund_data
+from typing import List
 
 
 async def load_fund_data_from_csv(file_path: str) -> List[FundData]:
@@ -28,81 +24,6 @@ async def load_fund_data_from_csv(file_path: str) -> List[FundData]:
             'JZZZL': str(row['JZZZL'])
         })
     return fund_data
-
-
-def plot_strategy_comparison(results: dict):
-    """Plot strategy comparison across different funds using line plots"""
-    # Prepare data for plotting
-    strategies = list(next(iter(results.values())).keys()
-                      )  # Get strategy names
-    funds = list(results.keys())
-    funds.sort(key=lambda x: results[x]
-               ['Enhanced RSI']['profit_rate'], reverse=True)
-
-    plt.figure(figsize=(15, 8))
-
-    # Plot a line for each strategy
-    for strategy in strategies:
-        returns = [results[fund][strategy]['profit_rate'] for fund in funds]
-        plt.plot(funds, returns, marker='.',
-                 label=strategy, linewidth=2, markersize=8)
-
-    plt.title('Strategy Performance Comparison Across Funds')
-    plt.xlabel('Fund Code')
-    plt.ylabel('Return Rate (%)')
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.xticks(rotation=45)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig('strategy_comparison.png', bbox_inches='tight', dpi=300)
-    plt.close()
-
-
-def generate_markdown_table(results: dict):
-    """Generate markdown table comparing strategy returns across funds with averages"""
-    if not results:
-        return "No results to display"
-
-    # Get strategy names from first fund's results
-    strategies = list(next(iter(results.values())).keys())
-
-    # Create header
-    header = "| Fund Code | " + " | ".join(strategies) + " |"
-    separator = "|-----------|" + "|".join(["-" * 15] * len(strategies)) + "|"
-
-    # Create rows and calculate averages
-    rows = []
-    strategy_sums = {strategy: 0.0 for strategy in strategies}
-    fund_count = len(results)
-
-    for fund_code, fund_results in results.items():
-        row_values = []
-        for strategy in strategies:
-            profit_rate = fund_results[strategy]['profit_rate']
-            strategy_sums[strategy] += profit_rate
-            row_values.append(f"{profit_rate:.2f}%")
-        rows.append(f"| {fund_code} | " + " | ".join(row_values) + " |")
-
-    # Add average row
-    avg_values = [f"{strategy_sums[strategy] /
-                     fund_count:.2f}%" for strategy in strategies]
-    avg_row = "| Average | " + " | ".join(avg_values) + " |"
-
-    # Combine all parts
-    markdown_table = "\n".join([
-        header,
-        separator,
-        "\n".join(rows),
-        separator,  # Add separator before average row
-        avg_row
-    ])
-
-    # Save to file
-    with open('strategy_comparison.md', 'w', encoding='utf-8') as f:
-        f.write("# Strategy Comparison Results\n\n")
-        f.write(markdown_table)
-
-    return markdown_table
 
 
 async def main():
@@ -156,12 +77,13 @@ async def main():
             print(f"收益率: {profit_rate:.2f}%")
 
     # Plot results
-    plot_strategy_comparison(results)
-    print("\n Image saved to 'strategy_comparison.png'")
+    draw_strategy_comparison(results, 'results/comparison/profit.png')
+    print("\n Image saved to 'results/comparison/profit.png'")
 
     # Generate markdown table
-    markdown_table = generate_markdown_table(results)
-    print("\nMarkdown table has been generated and saved to 'strategy_comparison.md'")
+    markdown_table = generate_markdown_table(
+        results, 'results/comparison/profit.md')
+    print("\nMarkdown table has been generated and saved to 'results/comparison/profit.md'")
     print("\nTable preview:")
     print(markdown_table)
 
