@@ -91,11 +91,23 @@ def generate_frequency_tables(results: dict, output_dir: str):
         "|" + "---|" * (len(strategies) + 1)
     ]
 
+    # Calculate averages for frequency
+    freq_sums = {strategy: 0 for strategy in strategies}
+
     for fund in funds:
         line = [fund]
         for strategy in strategies:
-            line.append(f"{results[fund][strategy]['total_investments']}")
+            freq = results[fund][strategy]['total_investments']
+            freq_sums[strategy] += freq
+            line.append(f"{freq}")
         freq_lines.append("| " + " | ".join(line) + " |")
+
+    # Add average row for frequency
+    avg_line = ["Average"]
+    for strategy in strategies:
+        avg = freq_sums[strategy] / len(funds)
+        avg_line.append(f"{avg:.1f}")
+    freq_lines.append("| " + " | ".join(avg_line) + " |")
 
     # Total investment table
     invest_lines = [
@@ -105,12 +117,23 @@ def generate_frequency_tables(results: dict, output_dir: str):
         "|" + "---|" * (len(strategies) + 1)
     ]
 
+    # Calculate averages for total investment
+    invest_sums = {strategy: 0 for strategy in strategies}
+
     for fund in funds:
         line = [fund]
         for strategy in strategies:
             total_amount = results[fund][strategy]['total_investments'] * results[fund][strategy]['avg_amount']
+            invest_sums[strategy] += total_amount
             line.append(f"{total_amount:.2f}")
         invest_lines.append("| " + " | ".join(line) + " |")
+
+    # Add average row for total investment
+    avg_line = ["Average"]
+    for strategy in strategies:
+        avg = invest_sums[strategy] / len(funds)
+        avg_line.append(f"{avg:.2f}")
+    invest_lines.append("| " + " | ".join(avg_line) + " |")
 
     # Save tables
     with open(os.path.join(output_dir, 'frequency_count.md'), 'w', encoding='utf-8') as f:
