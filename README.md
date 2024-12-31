@@ -5,10 +5,15 @@
 ![profit](results/comparison/profit.png)
 从 89 个基金的模拟结果来看:
 - RSI/Enhanced RSI 策略的收益最高，对比其他策略平均下来有平均 5 个点的提升。个别基金上，比如 001048 甚至有 15 个点的提升。
-- RSI/Enhanced RSI 策略没有特别大的差异。
+- RSI v.s. Enhanced RSI 策略没有特别大的差异。
 - Fixed drop, Dynamic drop, periodic 策略的收益差异不大。平均下来只差一个点，而且在很多基金上都是个位或者小数点后一位的差异。考虑到 periodic 比较省心，普通用户可以考虑这个策略。
 
 ![001048](results/static/001048.png)
+
+平均收益结果：
+| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA Cross | RSI | Enhanced RSI | Value Avg |
+|-----------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
+| Average | 19.24% | 19.24% | 18.23% | 17.79% | 24.60% | 24.79% | 13.77% |
 
 具体数据见：[profit](results/comparison/profit.md)
 
