@@ -81,11 +81,8 @@ async def main():
     print("\n Image saved to 'results/comparison/profit.png'")
 
     # Generate markdown table
-    markdown_table = generate_markdown_table(
-        results, 'results/comparison/profit.md')
+    generate_markdown_table(results, 'results/comparison/profit.md')
     print("\nMarkdown table has been generated and saved to 'results/comparison/profit.md'")
-    print("\nTable preview:")
-    print(markdown_table)
 
 
 if __name__ == "__main__":
