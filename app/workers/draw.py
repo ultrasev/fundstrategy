@@ -1,28 +1,36 @@
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def draw_strategy_comparison(results: dict, output_path: str):
-    """Plot strategy comparison across different funds using line plots"""
-    # Prepare data for plotting
-    strategies = list(next(iter(results.values())).keys())
+    """Draw comparison chart for different strategies
+
+    Args:
+        results: Dictionary containing results for each fund and strategy
+        output_path: Path to save the output image
+    """
     funds = list(results.keys())
-    funds.sort(key=lambda x: results[x]
-               ['Enhanced RSI']['profit_rate'], reverse=True)
+    strategies = list(results[funds[0]].keys())  # Get strategy names from first fund
 
+    # Sort funds by the first strategy's profit rate
+    funds.sort(key=lambda x: results[x][strategies[0]]['profit_rate'], reverse=True)
+
+    # Set up the plot
     plt.figure(figsize=(15, 8))
+    x = np.arange(len(funds))
+    width = 0.8 / len(strategies)
 
-    # Plot a line for each strategy
-    for strategy in strategies:
-        returns = [results[fund][strategy]['profit_rate'] for fund in funds]
-        plt.plot(funds, returns, marker='.',
-                 label=strategy, linewidth=2, markersize=8)
+    # Plot bars for each strategy
+    for i, strategy in enumerate(strategies):
+        profit_rates = [results[fund][strategy]['profit_rate'] for fund in funds]
+        plt.bar(x + i * width, profit_rates, width, label=strategy)
 
-    plt.title('Strategy Performance Comparison Across Funds')
-    plt.xlabel('Fund Code')
-    plt.ylabel('Return Rate (%)')
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.xticks(rotation=45)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xlabel('Funds')
+    plt.ylabel('Profit Rate (%)')
+    plt.title('Strategy Comparison Across Funds')
+    plt.xticks(x + width * (len(strategies) - 1) / 2, funds, rotation=45)
+    plt.legend()
     plt.tight_layout()
-    plt.savefig(output_path, bbox_inches='tight', dpi=300)
+
+    # Save the plot
+    plt.savefig(output_path)
     plt.close()
