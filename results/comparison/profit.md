@@ -1,6 +1,6 @@
 # Strategy Comparison Results
 
-| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA Cross | RSI | Enhanced RSI | Value Avg |
+| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA5 | RSI | Enhanced RSI | Value Avg |
 |-----------|---------------|---------------|---------------|---------------|---------------|---------------|---------------|
 | 006676 | 2.21% | 2.56% | 1.46% | 2.92% | 5.93% | 8.88% | 1.85% |
 | 163415 | 14.30% | 14.45% | 13.92% | 16.24% | 21.73% | 25.35% | 9.54% |

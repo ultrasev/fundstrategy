@@ -44,7 +44,7 @@ def periodic_strategy(current_value: float, prev_value: float | None, date_index
     return 1000.0 if date_index % 5 == 0 else 0.0
 
 
-def ma_cross_strategy(current_value: float, prev_value: float | None, date_index: int,
+def ma_5_strategy(current_value: float, prev_value: float | None, date_index: int,
                       price_history: List[float], ma_short: int = 5, ma_long: int = 20) -> float:
     """Strategy 4:
     Buy when current price is below or equal to 5-day moving average

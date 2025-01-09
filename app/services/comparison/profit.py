@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from app.models.strategy import (FundData, Investment, fixed_drop_strategy, dynamic_drop_strategy,
-                                 periodic_strategy, ma_cross_strategy, rsi_strategy, enhanced_rsi_strategy,
+                                 periodic_strategy, ma_5_strategy, rsi_strategy, enhanced_rsi_strategy,
                                  calculate_investment,
                                  value_averaging_strategy)
 
@@ -48,7 +48,7 @@ async def profits():
             "Fixed Drop": fixed_drop_strategy,
             "Dynamic Drop": dynamic_drop_strategy,
             "Periodic": periodic_strategy,
-            "MA Cross": lambda c, p, i: ma_cross_strategy(c, p, i, price_history),
+            "MA5": lambda c, p, i: ma_5_strategy(c, p, i, price_history),
             "RSI": lambda c, p, i: rsi_strategy(c, p, i, price_history),
             "Enhanced RSI": lambda c, p, i: enhanced_rsi_strategy(c, p, i, price_history),
             "Value Avg": value_averaging_strategy,

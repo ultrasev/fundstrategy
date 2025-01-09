@@ -2,7 +2,7 @@
 
 ## Number of Investments by Strategy
 
-| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA Cross | RSI | Enhanced RSI | Value Avg |
+| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA5 | RSI | Enhanced RSI | Value Avg |
 |---|---|---|---|---|---|---|---|
 | 006676 | 113 | 113 | 48 | 118 | 62 | 42 | 12 |
 | 163415 | 118 | 118 | 48 | 120 | 53 | 18 | 12 |

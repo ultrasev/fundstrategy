@@ -2,7 +2,7 @@
 
 ## Total Investment Amount by Strategy (¥)
 
-| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA Cross | RSI | Enhanced RSI | Value Avg |
+| Fund Code | Fixed Drop | Dynamic Drop | Periodic | MA5 | RSI | Enhanced RSI | Value Avg |
 |---|---|---|---|---|---|---|---|
 | 006676 | 113000.00 | 145698.33 | 48000.00 | 118000.00 | 52000.00 | 105000.00 | 77985.05 |
 | 163415 | 118000.00 | 168538.28 | 48000.00 | 120000.00 | 35500.00 | 30000.00 | 77963.01 |
