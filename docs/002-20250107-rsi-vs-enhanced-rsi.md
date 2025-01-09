@@ -15,9 +15,9 @@
 
 > RSI 只要低于 40 就买入，低于 30 就加倍买入，而 Enhanced RSI 只有低于 30 才买入，低于 40 不买入。
 
-如果 RSI 低于 30 才买入，那么两者的收益率差异会缩小，分别为 26.66% 和 27.62%。
-
-但这不代表买入点的 RSI 值设置的越低越好，如果 RSI 过低，会发现全年根据没有买入点 🤷‍♂️ ，因此收益率为 0。
+- 如果 RSI 低于 30 才买入，那么两者的收益率差异会缩小，分别为 26.66% 和 27.62%。
+- 但这不代表买入点的 RSI 值设置的越低越好，如果 RSI 过低，会发现全年根据没有买入点 🤷‍♂️ ，因此收益率为 0。
+- 总的思路是，RSI 越低，就越应该重拳出击。
 
 ```python
 def rsi(...):
@@ -31,7 +31,7 @@ def rsi(...):
 def enhanced_rsi(...):
     ...
     if rsi <= 20:  # Extremely oversold - go all in
-        return 8000.0
+        return 4000.0
     elif rsi <= 25:  # Heavily oversold
         return 2000.0
     elif rsi <= 30:  # Classic oversold
