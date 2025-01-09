@@ -50,8 +50,7 @@ async def profits():
             "Periodic": periodic_strategy,
             "MA5": lambda c, p, i: ma_5_strategy(c, p, i, price_history),
             "RSI": lambda c, p, i: rsi_strategy(c, p, i, price_history),
-            "Enhanced RSI": lambda c, p, i: enhanced_rsi_strategy(c, p, i, price_history),
-            "Value Avg": value_averaging_strategy,
+            "Enhanced RSI": lambda c, p, i: enhanced_rsi_strategy(c, p, i, price_history)
         }
 
         results[fund_code] = {}

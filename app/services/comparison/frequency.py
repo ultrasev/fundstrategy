@@ -123,7 +123,8 @@ def generate_frequency_tables(results: dict, output_dir: str):
     for fund in funds:
         line = [fund]
         for strategy in strategies:
-            total_amount = results[fund][strategy]['total_investments'] * results[fund][strategy]['avg_amount']
+            total_amount = results[fund][strategy]['total_investments'] * \
+                results[fund][strategy]['avg_amount']
             invest_sums[strategy] += total_amount
             line.append(f"{total_amount:.2f}")
         invest_lines.append("| " + " | ".join(line) + " |")
@@ -142,6 +143,7 @@ def generate_frequency_tables(results: dict, output_dir: str):
     with open(os.path.join(output_dir, 'total_investment.md'), 'w', encoding='utf-8') as f:
         f.write("\n".join(invest_lines))
 
+
 def plot_separate_comparisons(results: dict, output_dir: str):
     """Create separate plots for frequency and total investment"""
     strategies = list(next(iter(results.values())).keys())
@@ -150,8 +152,10 @@ def plot_separate_comparisons(results: dict, output_dir: str):
     # Plot investment frequency
     plt.figure(figsize=(12, 6))
     for strategy in strategies:
-        values = [results[fund][strategy]['total_investments'] for fund in funds]
-        plt.plot(funds, values, marker='.', label=strategy, linewidth=2, markersize=8)
+        values = [results[fund][strategy]['total_investments']
+                  for fund in funds]
+        plt.plot(funds, values, marker='.',
+                 label=strategy, linewidth=2, markersize=8)
 
     plt.title('Investment Frequency by Strategy')
     plt.xlabel('Fund Code')
@@ -160,15 +164,17 @@ def plot_separate_comparisons(results: dict, output_dir: str):
     plt.xticks(rotation=45)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'frequency_count.png'), bbox_inches='tight', dpi=300)
+    plt.savefig(os.path.join(output_dir, 'frequency_count.png'),
+                bbox_inches='tight', dpi=300)
     plt.close()
 
     # Plot total investment amount
     plt.figure(figsize=(12, 6))
     for strategy in strategies:
         values = [results[fund][strategy]['total_investments'] * results[fund][strategy]['avg_amount']
-                 for fund in funds]
-        plt.plot(funds, values, marker='.', label=strategy, linewidth=2, markersize=8)
+                  for fund in funds]
+        plt.plot(funds, values, marker='.',
+                 label=strategy, linewidth=2, markersize=8)
 
     plt.title('Total Investment Amount by Strategy')
     plt.xlabel('Fund Code')
@@ -177,8 +183,10 @@ def plot_separate_comparisons(results: dict, output_dir: str):
     plt.xticks(rotation=45)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'total_investment.png'), bbox_inches='tight', dpi=300)
+    plt.savefig(os.path.join(output_dir, 'total_investment.png'),
+                bbox_inches='tight', dpi=300)
     plt.close()
+
 
 async def load_fund_data_from_csv(file_path: str) -> List[FundData]:
     """Load fund data from CSV file"""
@@ -221,8 +229,7 @@ async def analyze_frequencies():
             "Periodic": periodic_strategy,
             "MA5": lambda c, p, i: ma_5_strategy(c, p, i, price_history),
             "RSI": lambda c, p, i: rsi_strategy(c, p, i, price_history),
-            "Enhanced RSI": lambda c, p, i: enhanced_rsi_strategy(c, p, i, price_history),
-            "Value Avg": value_averaging_strategy,
+            "Enhanced RSI": lambda c, p, i: enhanced_rsi_strategy(c, p, i, price_history)
         }
 
         for strategy_name, strategy_func in strategies.items():
@@ -231,8 +238,10 @@ async def analyze_frequencies():
                 fund_data, investment)
 
             print(f"\n{strategy_name}:")
-            print(f"投资次数: {results[fund_code][strategy_name]['total_investments']}")
-            print(f"平均投资额: {results[fund_code][strategy_name]['avg_amount']:.2f} 元")
+            print(f"投资次数: {results[fund_code]
+                  [strategy_name]['total_investments']}")
+            print(f"平均投资额: {results[fund_code]
+                  [strategy_name]['avg_amount']:.2f} 元")
 
     # Create results directory if it doesn't exist
     output_dir = 'results/comparison'
