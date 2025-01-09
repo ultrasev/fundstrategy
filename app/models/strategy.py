@@ -45,7 +45,7 @@ def periodic_strategy(current_value: float, prev_value: float | None, date_index
 
 
 def ma_5_strategy(current_value: float, prev_value: float | None, date_index: int,
-                      price_history: List[float], ma_short: int = 5, ma_long: int = 20) -> float:
+                  price_history: List[float], ma_short: int = 5, ma_long: int = 20) -> float:
     """Strategy 4:
     Buy when current price is below or equal to 5-day moving average
     This helps catch more buying opportunities at support levels
@@ -141,7 +141,9 @@ def enhanced_rsi_strategy(current_value: float, prev_value: float | None, date_i
     rsi = 100 - (100 / (1 + rs))
 
     # Simplified but more aggressive position sizing
-    if rsi <= 20:  # Extremely oversold - go all in
+    if rsi < 15:
+        return 8000.0
+    elif rsi <= 20:  # Extremely oversold - go all in
         return 4000.0
     elif rsi <= 25:  # Heavily oversold
         return 2000.0
