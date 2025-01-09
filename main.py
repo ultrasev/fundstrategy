@@ -5,4 +5,6 @@ from app.services.comparison.rsi_analysis import analyze_rsi_thresholds
 import asyncio
 
 if __name__ == "__main__":
-    asyncio.run(analyze_rsi_thresholds())
+    # asyncio.run(analyze_rsi_thresholds())
+    asyncio.run(profits())
+    asyncio.run(analyze_frequencies())

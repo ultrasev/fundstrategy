@@ -47,23 +47,18 @@ def periodic_strategy(current_value: float, prev_value: float | None, date_index
 def ma_cross_strategy(current_value: float, prev_value: float | None, date_index: int,
                       price_history: List[float], ma_short: int = 5, ma_long: int = 20) -> float:
     """Strategy 4:
-    Moving Average Crossover Strategy
-    Invest when short MA crosses above long MA (Golden Cross)"""
-    if date_index < ma_long:  # Not enough data
+    Buy when current price is below or equal to 5-day moving average
+    This helps catch more buying opportunities at support levels
+    """
+    if date_index < ma_short:  # Need at least 5 days of data
         return 0.0
 
+    # Calculate 5-day MA
     short_ma = sum(price_history[date_index-ma_short:date_index]) / ma_short
-    long_ma = sum(price_history[date_index-ma_long:date_index]) / ma_long
 
-    # Previous day's MAs
-    prev_short_ma = sum(
-        price_history[date_index-ma_short-1:date_index-1]) / ma_short
-    prev_long_ma = sum(
-        price_history[date_index-ma_long-1:date_index-1]) / ma_long
-
-    # Golden Cross: Short MA crosses above Long MA
-    if prev_short_ma <= prev_long_ma and short_ma > long_ma:
-        return 2000.0
+    # Buy signal: current price <= 5-day MA
+    if current_value <= short_ma:
+        return 1000.0
     return 0.0
 
 
@@ -122,26 +117,19 @@ def rsi_strategy(current_value: float, prev_value: float | None, date_index: int
 
 def enhanced_rsi_strategy(current_value: float, prev_value: float | None, date_index: int,
                           price_history: List[float], period: int = 14) -> float:
-    """ Strategy 7: Enhanced RSI Strategy
-    Non-linear investment based on RSI level and daily price change
-
-    Investment amount is determined by:
-    1. RSI level (lower RSI = higher base investment)
-    2. Daily price drop (bigger drop = higher multiplier)
+    """Enhanced RSI Strategy focusing on core strengths:
+    1. Aggressive buying at key RSI levels
+    2. Simple but effective position sizing
+    3. Quick response to oversold conditions
     """
     if date_index < period:
         return 0.0
 
-    # Calculate RSI (same as before)
-    gains, losses = [], []
-    for i in range(date_index - period, date_index):
-        change = price_history[i+1] - price_history[i]
-        if change >= 0:
-            gains.append(change)
-            losses.append(0)
-        else:
-            gains.append(0)
-            losses.append(abs(change))
+    # Calculate RSI
+    changes = [price_history[i+1] - price_history[i]
+               for i in range(date_index - period, date_index)]
+    gains = [change if change > 0 else 0 for change in changes]
+    losses = [abs(change) if change < 0 else 0 for change in changes]
 
     avg_gain = sum(gains) / period
     avg_loss = sum(losses) / period
@@ -152,24 +140,15 @@ def enhanced_rsi_strategy(current_value: float, prev_value: float | None, date_i
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
 
-    # Early exit if RSI is too high
-    if rsi >= 40:
-        return 0.0
+    # Simplified but more aggressive position sizing
+    if rsi <= 20:  # Extremely oversold - go all in
+        return 4000.0
+    elif rsi <= 25:  # Heavily oversold
+        return 2000.0
+    elif rsi <= 30:  # Classic oversold
+        return 1000.0
 
-    # Calculate base investment from RSI
-    rsi_score = (40 - rsi) / 40  # RSI 40->0, RSI 0->1
-    base_investment = 1000 * math.exp(rsi_score * 1.6)
-
-    # Calculate daily price change multiplier
-    if prev_value:
-        daily_drop = (prev_value - current_value) / prev_value * 100
-        if daily_drop > 0:  # Only increase investment on price drops
-            # Exponential multiplier based on daily drop
-            # 1% drop -> 1.1x, 2% -> 1.2x, 3% -> 1.35x, 5% -> 1.7x
-            drop_multiplier = 1 + math.exp(daily_drop/5) / 10
-            base_investment *= drop_multiplier
-
-    return min(base_investment, 5000.0)  # Still cap at 5000
+    return 0.0
 
 
 def calculate_investment(data: List[FundData], strategy_func: Callable) -> Investment:
