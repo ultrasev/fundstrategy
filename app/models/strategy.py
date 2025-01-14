@@ -12,8 +12,9 @@ class FundData(TypedDict):
 
 class Investment:
     def __init__(self):
-        self.total_units = 0.0  # Total fund units
-        self.total_cost = 0.0   # Total investment amount
+        self.total_units = 0.0          # Current holding units
+        self.total_cost = 0.0           # Current cost basis
+        self.loss = 0.0  # Total loss
         # Date, units, cost
         self.transactions: List[tuple[str, float, float]] = []
 
@@ -153,24 +154,49 @@ def enhanced_rsi_strategy(current_value: float, prev_value: float | None, date_i
     return 0.0
 
 
-def calculate_investment(data: List[FundData], strategy_func: Callable) -> Investment:
-    """Calculate investment results based on given strategy"""
+def calculate_investment(data: List[FundData], strategy_func: Callable, stop_loss_threshold: float = 0.08) -> Investment:
+    """Calculate investment results based on given strategy with stop-loss logic
+
+    Args:
+        data: List of fund data points
+        strategy_func: Investment strategy function
+        stop_loss_threshold: Liquidate position when loss exceeds this percentage (default 5%)
+
+    Tracks both current position and historical cumulative amounts:
+    - cumulative_investment: Total money invested over all periods
+    - cumulative_redemption: Total money redeemed from liquidations
+    """
     inv = Investment()
     prev_value = None
 
     for idx, day_data in enumerate(data):
+        is_redeemed = False
         current_value = float(day_data['DWJZ'])
 
-        # Get investment amount from strategy
-        investment_amount = strategy_func(current_value, prev_value, idx)
+        # Check if loss exceeds threshold and clear position if true
+        current_portfolio_value = inv.total_units * current_value
+        if inv.total_cost > 0:
+            loss_percentage = (
+                inv.total_cost - current_portfolio_value) / inv.total_cost
+            if loss_percentage > stop_loss_threshold:
+                # total cost = total cost + loss
+                inv.loss += inv.total_cost - current_portfolio_value
+                inv.total_units = 0.0
+                inv.total_cost = 0.0
+                is_redeemed = True
 
-        if investment_amount > 0:
-            units = investment_amount / current_value
-            inv.total_units += units
-            inv.total_cost += investment_amount
-            inv.transactions.append(
-                (day_data['FSRQ'], units, investment_amount))
+        if not is_redeemed:
+            # Get investment amount from strategy
+            investment_amount = strategy_func(current_value, prev_value, idx)
+            if investment_amount > 0:
+                units = investment_amount / current_value
+                inv.total_units += units
+                inv.total_cost += investment_amount
+                inv.transactions.append(
+                    (day_data['FSRQ'], units, investment_amount)
+                )
 
         prev_value = current_value
 
+    inv.total_cost += inv.loss
     return inv
