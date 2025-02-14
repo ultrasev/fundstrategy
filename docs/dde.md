@@ -4,7 +4,7 @@
 ---
 
 <!-- https://github.com/ultrasev/fundstrategy -->
-![dde-decision.png](https://raw.githubusercontent.com/ultrasev/fundstrategy/main/docs/images/dde-decision.png)
+![dde-decision.png](https://raw.githubusercontent.com/ultrasev/fundstrategy/master/images/dde-decision.png)
 
 ### **1. DDX（大单动向指标）**
 - **定义**：衡量大资金（主力）的净买入强度，计算方式为 **大单买入净量占流通盘的比例**。
@@ -21,7 +21,7 @@
 - **关键点**：
   - **正值**：主力买入力度强于散户，筹码趋向集中。
   - **负值**：散户买入力度强于主力，筹码趋向分散。
-  - **示例**：表中「中韩半导体ETF」当日DDY为1.065，说明主力主导买入；而「东南亚科技ETF」当日DDY为-0.475，散户抛压较大。
+  - **示例**：表中「中韩半导体ETF」当日 DDY 为 0.85，说明主力主导买入；而「东南亚科技ETF」当日 DDY 为 -0.497，散户抛压较大。
 - **应用**：结合DDX使用，判断主力是否控盘。
 
 ---
@@ -54,5 +54,3 @@
 ### **注意事项**
 - **数据来源差异**：不同平台计算方式可能不同，需结合具体软件说明。
 - **综合判断**：需结合量价、基本面、市场情绪分析，避免单一依赖技术指标。
-
-希望以上解析对您分析表格中的股票数据有所帮助！
