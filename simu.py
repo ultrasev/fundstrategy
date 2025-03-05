@@ -21,16 +21,19 @@ class Reporter(BaseModel):
         return (self.final_total / self.initial_cash - 1) * 100
 
     def __str__(self):
-        return indent(f'''
-    name: {self.name}
-    code: {self.code}
-    start_price: {self.start_price}
-    end_price: {self.end_price}
-    return_rate: {self.return_rate:.2f}%
-    positions: {self.positions}
-    initial_cash: {self.initial_cash}
-    final_total: {self.final_total}
-    ''', '    ')
+        text = (
+            f'Stock: {self.name} ({self.code})\n'
+            f'Price Movement:\n'
+            f'    Start: ¥{self.start_price:.2f}\n'
+            f'    End:   ¥{self.end_price:.2f}\n'
+            f'Performance:\n'
+            f'    Initial Cash: ¥{self.initial_cash:.2f}\n'
+            f'    Final Total:  ¥{self.final_total:.2f}\n'
+            f'    Return Rate:  {self.return_rate:+.2f}%\n'
+            f'Positions:\n'
+            f'    {self.positions}'
+        )
+        return indent(text, '    ')
 
 
 def simulate(code):
