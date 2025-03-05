@@ -509,6 +509,8 @@ class EnhancedGridTrader(BaseTrader):
                     any_sell = True
                     self.current_price = target_sell_price
                     self.cash += target_sell_price * position.quantity
+                    _total += position.quantity * \
+                        (target_sell_price - position.price)
                     cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
                         target_sell_price, item.date, self.cash, _total))
                 else:
