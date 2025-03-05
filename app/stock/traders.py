@@ -340,15 +340,17 @@ class EnhancedGridTrader(BaseTrader):
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.2,
-                 volatility_window: int = 10,  # 计算波动率的窗口
-                 volatility_multiplier: float = 1.5):  # 波动率调整系数
+                 grid_size: float = 0.1,
+                 volatility_window: int = 10,
+                 volatility_multiplier: float = 1.5,
+                 stop_loss_rate: float = -0.03):  # 5%止损
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)
         self.grid_size = grid_size
         self.price_history = []
         self.volatility_window = volatility_window
         self.volatility_multiplier = volatility_multiplier
         self.last_close = None
+        self.stop_loss_rate = stop_loss_rate
 
     def get_grid_price(self, price: float) -> float:
         """Calculate the grid price level"""
@@ -406,11 +408,51 @@ class EnhancedGridTrader(BaseTrader):
 
         return None
 
+    def check_stop_loss(self, item: KlimeItem) -> list[Position]:
+        """Check if any positions need to be stopped out"""
+        positions_to_stop = []
+        for position in self.positions:
+            if position.purchase_date == item.date:  # Skip T+1
+                continue
+            # Calculate current loss rate
+            loss_rate = (item.close - position.price) / position.price
+            if loss_rate <= self.stop_loss_rate:
+                positions_to_stop.append(position)
+        return positions_to_stop
+
+    def execute_stop_loss(self, item: KlimeItem, positions_to_stop: list[Position]) -> None:
+        """Execute stop loss orders"""
+        if not positions_to_stop:
+            return
+
+        remaining_positions = []
+        for position in self.positions:
+            if position in positions_to_stop:
+                sell_price = position.price * (1 + self.stop_loss_rate)
+                x = self.cash + sell_price * position.quantity
+                cf.info("Stop Loss at {:.2f} {}, cash: {:.2f}, total: {:.2f}, loss: {:.2%}".format(
+                    sell_price, item.date, x, self.total,
+                    self.stop_loss_rate))
+                self.cash += sell_price * position.quantity
+            else:
+                remaining_positions.append(position)
+
+        if positions_to_stop:
+            self.cash -= self.transaction_fee_sell
+
+        self.positions = remaining_positions
+
     def execute_orders(self, item: KlimeItem,
                        buy_order: float | None,
                        sell_order: tuple[float, list[Position]]) -> None:
         """Execute orders if price hits the target levels"""
-        # Process sell order first
+        # Check stop loss first
+        positions_to_stop = self.check_stop_loss(item)
+        if positions_to_stop:
+            self.execute_stop_loss(item, positions_to_stop)
+            return  # Skip normal trading if stop loss triggered
+
+        # Process sell order
         target_sell_price, positions_to_sell = sell_order
         remaining_positions = []
         any_sell = False
@@ -454,7 +496,7 @@ class EnhancedGridTrader(BaseTrader):
                     buy_order, item.date, self.cash, self.total))
 
     def trade(self, item: KlimeItem):
-        self.current_price = item.close
+        self.current_price = item.close  # Update current price first
         self.price_history.append(item.close)
 
         if len(self.price_history) < 2:
@@ -476,6 +518,19 @@ class EnhancedGridTrader(BaseTrader):
             # More aggressive buying in downtrend
             buy_order = self.get_buy_order(predicted_low)
 
+        print({
+            'date': item.date,
+            'open': item.open,
+            'close': item.close,
+            'high': item.high,
+            'low': item.low,
+            'predicted_low': predicted_low,
+            'predicted_high': predicted_high,
+            'buy_order': buy_order,
+            'sell_order': sell_order,
+            'positions': self.positions,
+
+        })
         # Execute orders
         self.execute_orders(item, buy_order, sell_order)
         self.last_close = item.close

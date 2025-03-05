@@ -39,9 +39,9 @@ class Reporter(BaseModel):
         return indent(text, '    ')
 
 
-def simulate(code):
+def simulate(code, min_quantity):
     trader = MomentumTrader(cash=20000,
-                            min_quantity=1000,
+                            min_quantity=min_quantity,
                             transaction_fee_buy=6,
                             transaction_fee_sell=5)
     # trader = HighLowTrader(cash=20000,
@@ -49,7 +49,7 @@ def simulate(code):
     #                        transaction_fee_buy=6,
     #                        transaction_fee_sell=5)
     trader = EnhancedGridTrader(cash=20000,
-                                min_quantity=1800,
+                                min_quantity=min_quantity,
                                 transaction_fee_buy=6,
                                 transaction_fee_sell=5)
     reader = KlineReader(code)
@@ -86,12 +86,21 @@ stocks = {
 
     },
     '002253': {
-        'min_quantity': 1200,
+        'min_quantity': 400,
         'name': '川大智胜',
+    },
+    '002273': {
+        'min_quantity': 600,
+        'name': '水晶光电',
+    },
+    '600505': {
+        'min_quantity': 300,
+        'name': '西昌电力',
     },
 }
 
 if __name__ == "__main__":
-    code = '002253'
-    trader = simulate(code)
+    code = '000001'
+    min_quantity = stocks.get(code, {}).get('min_quantity', 7000)
+    trader = simulate(code, min_quantity)
     print(trader)
