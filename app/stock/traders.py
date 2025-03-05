@@ -2,6 +2,7 @@ from .dataloader import KlimeItem
 from pydantic import BaseModel
 import codefast as cf
 import random
+import math
 
 
 class Position(BaseModel):
@@ -340,7 +341,7 @@ class EnhancedGridTrader(BaseTrader):
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.1,
+                 grid_size: float = 0.2,
                  volatility_window: int = 10,
                  volatility_multiplier: float = 1.5,
                  stop_loss_rate: float = -0.03):  # 5%止损
@@ -357,20 +358,42 @@ class EnhancedGridTrader(BaseTrader):
         return round(price / self.grid_size) * self.grid_size
 
     def calculate_volatility(self) -> float:
-        """Calculate historical volatility"""
+        """Calculate historical volatility using exponentially weighted standard deviation"""
         if len(self.price_history) < self.volatility_window:
             return 0.03  # Default 3% if not enough history
 
-        returns = [(self.price_history[i] - self.price_history[i-1]) / self.price_history[i-1]
+        # Calculate log returns
+        returns = [math.log(self.price_history[i] / self.price_history[i-1])
                    for i in range(1, len(self.price_history))]
         recent_returns = returns[-self.volatility_window:]
-        return (max(recent_returns) - min(recent_returns)) * self.volatility_multiplier
+
+        # Apply exponential weights (more recent data has higher weight)
+        decay = 0.94  # Decay factor
+        weights = [decay ** i for i in range(len(recent_returns))]
+        weights = [w / sum(weights) for w in weights]  # Normalize weights
+
+        # Calculate weighted standard deviation
+        weighted_mean = sum(r * w for r, w in zip(recent_returns, weights))
+        weighted_variance = sum(((r - weighted_mean) ** 2) * w
+                                for r, w in zip(recent_returns, weights))
+        return math.sqrt(weighted_variance) * math.sqrt(self.volatility_window)
 
     def predict_price_range(self, open_price: float, volatility: float) -> tuple[float, float]:
-        """Predict today's trading range based on open price and volatility"""
+        """
+        Predict price range with tighter bounds and intraday adjustment
+        """
+        daily_vol = volatility / \
+            math.sqrt(self.volatility_window)  # Convert to daily volatility
+
+        # Reduce confidence interval for tighter bounds
+        confidence_level = 1.4  # Reduced from 1.96
+        intraday_factor = 0.7  # Further tighten the range for intraday
+
         return (
-            open_price * (1 - volatility),
-            open_price * (1 + volatility)
+            open_price * math.exp(-confidence_level *
+                                  daily_vol * intraday_factor),
+            open_price * math.exp(confidence_level *
+                                  daily_vol * intraday_factor)
         )
 
     def get_sell_orders(self, predicted_high: float) -> tuple[float, list[Position]]:
@@ -459,6 +482,7 @@ class EnhancedGridTrader(BaseTrader):
 
         # Only execute if price reached our target
         if item.high >= target_sell_price:
+            _total = self.total
             for position in self.positions:
                 if position.purchase_date == item.date:  # T+1 rule
                     remaining_positions.append(position)
@@ -467,10 +491,9 @@ class EnhancedGridTrader(BaseTrader):
                 if position in positions_to_sell:
                     any_sell = True
                     self.current_price = target_sell_price
-                    x = self.cash + target_sell_price * position.quantity
-                    cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                        target_sell_price, item.date, x, self.total))
                     self.cash += target_sell_price * position.quantity
+                    cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
+                        target_sell_price, item.date, self.cash, _total))
                 else:
                     remaining_positions.append(position)
 
@@ -518,20 +541,20 @@ class EnhancedGridTrader(BaseTrader):
             # More aggressive buying in downtrend
             buy_order = self.get_buy_order(predicted_low)
 
-        print({
-            'date': item.date,
-            'open': item.open,
-            'close': item.close,
-            'high': item.high,
-            'low': item.low,
-            'predicted_low': predicted_low,
-            'predicted_high': predicted_high,
-            'buy_order': buy_order,
-            'sell_order': sell_order,
-            'positions': self.positions,
+        # print({
+        #     'date': item.date,
+        #     'open': item.open,
+        #     'close': item.close,
+        #     'high': item.high,
+        #     'low': item.low,
+        #     'predicted_low': predicted_low,
+        #     'predicted_high': predicted_high,
+        #     'buy_order': buy_order,
+        #     'sell_order': sell_order,
+        #     'positions': self.positions,
 
-        })
-        # Execute orders
+        # })
+        # # Execute orders
         self.execute_orders(item, buy_order, sell_order)
         self.last_close = item.close
 

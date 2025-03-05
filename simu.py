@@ -39,15 +39,15 @@ class Reporter(BaseModel):
         return indent(text, '    ')
 
 
-def simulate(code, min_quantity):
+def simulate(code, min_quantity, n_days=40):
     trader = MomentumTrader(cash=20000,
                             min_quantity=min_quantity,
                             transaction_fee_buy=6,
                             transaction_fee_sell=5)
-    # trader = HighLowTrader(cash=20000,
-    #                        min_quantity=100,
-    #                        transaction_fee_buy=6,
-    #                        transaction_fee_sell=5)
+    trader = HighLowTrader(cash=20000,
+                           min_quantity=min_quantity,
+                           transaction_fee_buy=6,
+                           transaction_fee_sell=5)
     trader = EnhancedGridTrader(cash=20000,
                                 min_quantity=min_quantity,
                                 transaction_fee_buy=6,
@@ -55,8 +55,10 @@ def simulate(code, min_quantity):
     reader = KlineReader(code)
     kline = reader.read()
     data = kline.klines
+    start_price = None
 
-    for item in data:
+    for item in data[-n_days:]:
+        start_price = item.open if start_price is None else start_price
         trader.trade(item)
 
     for p in trader.positions:
@@ -64,8 +66,8 @@ def simulate(code, min_quantity):
     info = {
         'name': kline.name,
         'code': kline.code,
-        'start_price': kline.klines[0].open,
-        'end_price': kline.klines[-1].close,
+        'start_price': start_price,
+        'end_price': data[-1].close,
         'return rate': (trader.total / trader.initial_cash - 1) * 100,
         'positions': trader.positions,
         'initial_cash': trader.initial_cash,
@@ -77,7 +79,7 @@ def simulate(code, min_quantity):
 
 stocks = {
     '000001': {
-        'min_quantity': 1000,
+        'min_quantity': 700,
         'name': '平安银行',
     },
     '600916': {
@@ -100,7 +102,8 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '000001'
-    min_quantity = stocks.get(code, {}).get('min_quantity', 7000)
-    trader = simulate(code, min_quantity)
+    code = '002846'
+    min_quantity = 1000
+    n_days = 100
+    trader = simulate(code, min_quantity, n_days)
     print(trader)
