@@ -204,17 +204,17 @@ class MomentumTrader(BaseTrader):
                 continue
 
             any_deal = True
-            self.current_price = item.high
-            _cash = self.cash + item.high * position.quantity
+            self.current_price = item.close
+            _cash = self.cash + item.close * position.quantity
             cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                item.high, item.date, _cash, self.total))
-            self.cash += item.high * position.quantity
+                item.close, item.date, _cash, self.total))
+            self.cash += item.close * position.quantity
 
         if any_deal:
             self.cash -= self.transaction_fee_sell
 
         self.positions = remaining_positions
-        return item.high if any_deal else None
+        return item.close if any_deal else None
 
     @property
     def total(self) -> float:

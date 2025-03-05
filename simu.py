@@ -70,5 +70,5 @@ def simulate(code):
 
 
 if __name__ == "__main__":
-    trader = simulate("600988")
+    trader = simulate("000001")
     print(trader)
