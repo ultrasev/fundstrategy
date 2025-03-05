@@ -329,6 +329,13 @@ class GridTrader(BaseTrader):
 
 
 class EnhancedGridTrader(BaseTrader):
+    '''Trade 时不是在收盘做，而是盘中做，假设我能拿到实时价格。
+    首先计算一下移动平均波动率，然后根据开盘价来预测今天涨幅，然后挂单交易（未必能成交）。
+    比如今天开盘比昨天收盘高，我认为今天可能上涨，开盘价格 6.1，假设波动率为 3%，也就是说今天价格可能（只是可能）在 6.1～6.39 之间，那在这个区间可卖出的最高价格为 6.2（假设 gird size=0.2)，那么找可以出售的筹码，如果之前买入的有低于这个价格的就可以出售。当然，当天的价格未必真实在 6.1 ～ 6.39 之间，如果预设的价格 6.2 没有出现，就不成交。
+    反之，如果开盘价比较低，买入策略也是类似的。
+
+    策略可以直接用当天的最高价最低价来判断是否成交，毕竟我们在用历史数据回测。'''
+
     def __init__(self, cash: int = 30000,
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
@@ -364,18 +371,21 @@ class EnhancedGridTrader(BaseTrader):
             open_price * (1 + volatility)
         )
 
-    def get_sell_orders(self, predicted_high: float) -> list[tuple[Position, float]]:
-        """Generate sell orders based on predicted high price"""
-        sell_orders = []
-        highest_grid = self.get_grid_price(predicted_high)
+    def get_sell_orders(self, predicted_high: float) -> tuple[float, list[Position]]:
+        """
+        Generate one optimal sell order based on predicted high price
+        Returns: (target_sell_price, positions_to_sell)
+        """
+        # Get the highest possible grid price below predicted high
+        target_sell_price = self.get_grid_price(predicted_high)
+        positions_to_sell = []
 
+        # Find all positions that can be sold at this price
         for position in self.positions:
-            # Find the next grid level above position price
-            sell_price = self.get_grid_price(position.price + self.grid_size)
-            if sell_price <= highest_grid:
-                sell_orders.append((position, sell_price))
+            if position.price < target_sell_price:
+                positions_to_sell.append(position)
 
-        return sell_orders
+        return target_sell_price, positions_to_sell
 
     def get_buy_orders(self, predicted_low: float) -> list[float]:
         """Generate buy orders based on predicted low price"""
@@ -400,35 +410,34 @@ class EnhancedGridTrader(BaseTrader):
 
     def execute_orders(self, item: KlimeItem,
                        buy_orders: list[float],
-                       sell_orders: list[tuple[Position, float]]) -> None:
-        """Execute orders if price hits the order levels"""
-        # Process sell orders
+                       sell_order: tuple[float, list[Position]]) -> None:
+        """Execute orders if price hits the target levels"""
+        # Process sell order
+        target_sell_price, positions_to_sell = sell_order
         remaining_positions = []
         any_sell = False
 
-        for position in self.positions:
-            if position.purchase_date == item.date:  # T+1 rule
-                remaining_positions.append(position)
-                continue
+        # Only execute if price reached our target
+        if item.high >= target_sell_price:
+            for position in self.positions:
+                if position.purchase_date == item.date:  # T+1 rule
+                    remaining_positions.append(position)
+                    continue
 
-            # Find matching sell order
-            matching_sell = next((order for order in sell_orders
-                                  if order[0] == position and order[1] <= item.high), None)
+                if position in positions_to_sell:
+                    any_sell = True
+                    self.current_price = target_sell_price
+                    x = self.cash + target_sell_price * position.quantity
+                    cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
+                        target_sell_price, item.date, x, self.total))
+                    self.cash += target_sell_price * position.quantity
+                else:
+                    remaining_positions.append(position)
 
-            if matching_sell:
-                any_sell = True
-                sell_price = matching_sell[1]
-                self.current_price = sell_price
-                self.cash += sell_price * position.quantity
-                cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                    sell_price, item.date, self.cash, self.total))
-            else:
-                remaining_positions.append(position)
+            if any_sell:
+                self.cash -= self.transaction_fee_sell
 
-        if any_sell:
-            self.cash -= self.transaction_fee_sell
-
-        self.positions = remaining_positions
+            self.positions = remaining_positions
 
         # Process buy orders
         # Buy from highest price first
@@ -460,17 +469,17 @@ class EnhancedGridTrader(BaseTrader):
             item.open, volatility)
 
         if item.open > self.last_close:
-            sell_orders = self.get_sell_orders(predicted_high)
+            # Uptrend: focus on selling at higher price
+            sell_order = self.get_sell_orders(predicted_high)
             buy_orders = self.get_buy_orders(
                 item.open * 0.99)  # Limited buying below open
         else:
-            # Downtrend: focus on buying
-            sell_orders = self.get_sell_orders(
-                item.open * 1.01)  # Limited selling above open
+            # Downtrend: focus on buying, set conservative sell price
+            sell_order = self.get_sell_orders(item.open * 1.01)
             buy_orders = self.get_buy_orders(predicted_low)
 
         # Execute orders
-        self.execute_orders(item, buy_orders, sell_orders)
+        self.execute_orders(item, buy_orders, sell_order)
         self.last_close = item.close
 
     @property
