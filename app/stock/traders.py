@@ -535,7 +535,7 @@ class EnhancedGridTrader(BaseTrader):
                 cf.info("Buy at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
                     buy_order, item.date, self.cash, self.total))
 
-    def trade(self, item: KlimeItem):
+    def trade(self, item: KlimeItem) -> KlimeItem:
         self.current_price = item.close  # Update current price first
         self.price_history.append({
             'open': item.open,
@@ -562,21 +562,22 @@ class EnhancedGridTrader(BaseTrader):
             # More aggressive buying in downtrend
             buy_order = self.get_buy_order(predicted_low)
 
-        print({
-            'date': item.date,
-            'open': item.open,
-            'close': item.close,
-            'high': item.high,
-            'low': item.low,
-            'predicted_low': predicted_low,
-            'predicted_high': predicted_high,
-            'buy_order': buy_order,
-            'sell_order': sell_order,
-            'positions': self.positions,
-        })
+        # print({
+        #     'date': item.date,
+        #     'open': item.open,
+        #     'close': item.close,
+        #     'high': item.high,
+        #     'low': item.low,
+        #     'predicted_low': predicted_low,
+        #     'predicted_high': predicted_high,
+        #     'buy_order': buy_order,
+        #     'sell_order': sell_order,
+        #     'positions': self.positions,
+        # })
         # # Execute orders
         self.execute_orders(item, buy_order, sell_order)
         self.last_close = item.close
+        return item
 
     @property
     def total(self) -> float:

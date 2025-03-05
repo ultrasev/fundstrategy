@@ -58,8 +58,9 @@ def simulate(code, min_quantity, n_days=40):
     start_price = None
 
     for item in data[-n_days:]:
-        start_price = item.open if start_price is None else start_price
-        trader.trade(item)
+        item = trader.trade(item)
+        if item and not start_price:
+            start_price = item.open
 
     for p in trader.positions:
         print(p)
@@ -102,8 +103,8 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '002846'
-    min_quantity = 1000
+    code = '600358'
+    min_quantity = 4500
     n_days = 100
     trader = simulate(code, min_quantity, n_days)
     print(trader)
