@@ -342,7 +342,7 @@ class EnhancedGridTrader(BaseTrader):
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
                  grid_size: float = 0.2,
-                 volatility_window: int = 10,
+                 volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
                  stop_loss_rate: float = -0.03):  # 5%止损
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)
@@ -357,44 +357,61 @@ class EnhancedGridTrader(BaseTrader):
         """Calculate the grid price level"""
         return round(price / self.grid_size) * self.grid_size
 
-    def calculate_volatility(self) -> float:
-        """Calculate historical volatility using exponentially weighted standard deviation"""
+    def calculate_price_ranges(self) -> tuple[float, float]:
+        """
+        Calculate average daily price ranges based on historical data.
+        Returns:
+            tuple[float, float]: (avg_down_range, avg_up_range)
+            - avg_down_range: average (open - low) / open
+            - avg_up_range: average (high - open) / open
+        """
         if len(self.price_history) < self.volatility_window:
-            return 0.03  # Default 3% if not enough history
+            return 0.01, 0.01  # Default 1% if not enough history
 
-        # Calculate log returns
-        returns = [math.log(self.price_history[i] / self.price_history[i-1])
-                   for i in range(1, len(self.price_history))]
-        recent_returns = returns[-self.volatility_window:]
+        up_ranges = []
+        down_ranges = []
 
-        # Apply exponential weights (more recent data has higher weight)
-        decay = 0.94  # Decay factor
-        weights = [decay ** i for i in range(len(recent_returns))]
-        weights = [w / sum(weights) for w in weights]  # Normalize weights
+        # Calculate recent price ranges relative to open
+        for i in range(-self.volatility_window, 0):
+            open_price = self.price_history[i]['open']
+            high_price = self.price_history[i]['high']
+            low_price = self.price_history[i]['low']
 
-        # Calculate weighted standard deviation
-        weighted_mean = sum(r * w for r, w in zip(recent_returns, weights))
-        weighted_variance = sum(((r - weighted_mean) ** 2) * w
-                                for r, w in zip(recent_returns, weights))
-        return math.sqrt(weighted_variance) * math.sqrt(self.volatility_window)
+            up_range = (high_price - open_price) / open_price
+            down_range = (open_price - low_price) / open_price
 
-    def predict_price_range(self, open_price: float, volatility: float) -> tuple[float, float]:
+            up_ranges.append(up_range)
+            down_ranges.append(down_range)
+
+        # Use exponential weights for more recent data
+        decay = 0.94
+        weights = [decay ** i for i in range(len(up_ranges))]
+        weights = [w / sum(weights) for w in weights]
+
+        avg_up_range = sum(r * w for r, w in zip(up_ranges, weights))
+        avg_down_range = sum(r * w for r, w in zip(down_ranges, weights))
+
+        return avg_down_range, avg_up_range
+
+    def predict_price_range(self, open_price: float) -> tuple[float, float]:
         """
-        Predict price range with tighter bounds and intraday adjustment
+        Predict likely price range based on historical price movements.
+
+        Args:
+            open_price: Today's opening price
+
+        Returns:
+            tuple[float, float]: (predicted_low, predicted_high)
         """
-        daily_vol = volatility / \
-            math.sqrt(self.volatility_window)  # Convert to daily volatility
+        down_range, up_range = self.calculate_price_ranges()
 
-        # Reduce confidence interval for tighter bounds
-        confidence_level = 1.4  # Reduced from 1.96
-        intraday_factor = 0.7  # Further tighten the range for intraday
+        # Add a small buffer (10%) to the ranges
+        buffer = 1.1
 
-        return (
-            open_price * math.exp(-confidence_level *
-                                  daily_vol * intraday_factor),
-            open_price * math.exp(confidence_level *
-                                  daily_vol * intraday_factor)
-        )
+        predicted_low = open_price * (1 - down_range * buffer)
+        predicted_high = open_price * (1 + up_range * buffer)
+
+        return predicted_low, predicted_high
 
     def get_sell_orders(self, predicted_high: float) -> tuple[float, list[Position]]:
         """
@@ -520,15 +537,19 @@ class EnhancedGridTrader(BaseTrader):
 
     def trade(self, item: KlimeItem):
         self.current_price = item.close  # Update current price first
-        self.price_history.append(item.close)
+        self.price_history.append({
+            'open': item.open,
+            'high': item.high,
+            'low': item.low,
+            'close': item.close,
+            'date': item.date
+        })
 
         if len(self.price_history) < 2:
             self.last_close = item.close
             return
 
-        volatility = self.calculate_volatility()
-        predicted_low, predicted_high = self.predict_price_range(
-            item.open, volatility)
+        predicted_low, predicted_high = self.predict_price_range(item.open)
 
         if item.open > self.last_close:
             # Uptrend: focus on selling at higher price
@@ -541,19 +562,18 @@ class EnhancedGridTrader(BaseTrader):
             # More aggressive buying in downtrend
             buy_order = self.get_buy_order(predicted_low)
 
-        # print({
-        #     'date': item.date,
-        #     'open': item.open,
-        #     'close': item.close,
-        #     'high': item.high,
-        #     'low': item.low,
-        #     'predicted_low': predicted_low,
-        #     'predicted_high': predicted_high,
-        #     'buy_order': buy_order,
-        #     'sell_order': sell_order,
-        #     'positions': self.positions,
-
-        # })
+        print({
+            'date': item.date,
+            'open': item.open,
+            'close': item.close,
+            'high': item.high,
+            'low': item.low,
+            'predicted_low': predicted_low,
+            'predicted_high': predicted_high,
+            'buy_order': buy_order,
+            'sell_order': sell_order,
+            'positions': self.positions,
+        })
         # # Execute orders
         self.execute_orders(item, buy_order, sell_order)
         self.last_close = item.close
