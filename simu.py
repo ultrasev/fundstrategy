@@ -3,7 +3,10 @@ from app.stock.traders import HighLowTrader
 
 
 def simulate(code):
-    trader = HighLowTrader()
+    trader = HighLowTrader(cash=100000,
+                           min_quantity=200,
+                           transaction_fee_buy=6,
+                           transaction_fee_sell=5)
     reader = KlineReader(code)
     lines = reader.read()
     for line in lines['data']['klines']:

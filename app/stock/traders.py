@@ -9,11 +9,15 @@ class Position(BaseModel):
 
 
 class BaseTrader:
-    def __init__(self):
+    def __init__(self, cash: int = 100000,
+                 min_quantity: int = 200,
+                 transaction_fee_buy: int = 6,
+                 transaction_fee_sell: int = 5):
         self.positions: list[Position] = []
-        self.cash = 100000
-        self.transaction_fee_buy = 6
-        self.transaction_fee_sell = 5
+        self.cash = cash
+        self.min_quantity = min_quantity
+        self.transaction_fee_buy = transaction_fee_buy
+        self.transaction_fee_sell = transaction_fee_sell
         self.current_price = 0
 
     def trade(self, low, high, open_price, close, date):
@@ -22,10 +26,11 @@ class BaseTrader:
 
 
 class HighLowTrader(BaseTrader):
-    def __init__(self):
-        super().__init__()
-        self.min_quantity = 200
-        self.cash = 20000
+    def __init__(self, cash: int = 100000,
+                 min_quantity: int = 200,
+                 transaction_fee_buy: int = 6,
+                 transaction_fee_sell: int = 5):
+        super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)
 
     @property
     def total(self):
