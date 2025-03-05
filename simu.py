@@ -55,7 +55,7 @@ def simulate(code, min_quantity, n_days=40):
     reader = KlineReader(code)
     kline = reader.read()
     data = kline.klines
-    start_price = None
+    start_price = 0
 
     for item in data[-n_days:]:
         item = trader.trade(item)
@@ -104,7 +104,7 @@ stocks = {
 
 if __name__ == "__main__":
     code = '600358'
-    min_quantity = 4500
-    n_days = 100
+    min_quantity = 500
+    n_days = 30
     trader = simulate(code, min_quantity, n_days)
     print(trader)
