@@ -2,6 +2,7 @@ import json
 from pydantic import BaseModel
 import random
 import codefast as cf
+from app.stock.dataloader import KlineReader
 
 
 class Position(BaseModel):
@@ -81,26 +82,23 @@ class HighLowTrader(BaseTrader):
         self.positions = remaining_positions
 
 
-def simulate_trading(data):
+def simulate_trading(code):
     trader = HighLowTrader()
-    for day_data in data["data"]["klines"]:
-        date, open_price, close, high, low, *_ = day_data.split(",")
+    reader = KlineReader(code)
+    lines = reader.read()
+    for line in lines['data']['klines']:
+        date, open_price, close, high, low, *_ = line.split(",")
         open_price = float(open_price)
         close = float(close)
         high = float(high)
         low = float(low)
 
-        # Try to buy
         trader.trade(low, high, open_price, close, date)
 
     return trader
 
 
-# Load and parse JSON data
-
-with open("stocks/pingan.json", "r") as f:
-    data = json.load(f)
-
-trader = simulate_trading(data)
-print(trader.positions)
-print(f"Final cash: {trader.cash}, Final total: {trader.total}")
+if __name__ == "__main__":
+    trader = simulate_trading("000001")
+    print(trader.positions)
+    print(f"Final cash: {trader.cash}, Final total: {trader.total}")
