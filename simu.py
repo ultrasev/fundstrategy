@@ -1,9 +1,11 @@
 from app.stock.dataloader import KlimeItem
 from app.stock.dataloader import KlineReader, Kline
-from app.stock.traders import HighLowTrader, MomentumTrader, Position
+from app.stock.traders import (HighLowTrader,
+                               MomentumTrader,
+                               Position,
+                               EnhancedGridTrader)
 
 from pydantic import BaseModel
-from pprint import pprint
 from textwrap import indent
 
 
@@ -39,13 +41,17 @@ class Reporter(BaseModel):
 
 def simulate(code):
     trader = MomentumTrader(cash=20000,
-                            min_quantity=500,
+                            min_quantity=1000,
                             transaction_fee_buy=6,
                             transaction_fee_sell=5)
     # trader = HighLowTrader(cash=20000,
     #                        min_quantity=100,
     #                        transaction_fee_buy=6,
     #                        transaction_fee_sell=5)
+    trader = EnhancedGridTrader(cash=20000,
+                                min_quantity=1800,
+                                transaction_fee_buy=6,
+                                transaction_fee_sell=5)
     reader = KlineReader(code)
     kline = reader.read()
     data = kline.klines
@@ -69,6 +75,23 @@ def simulate(code):
     return reporter
 
 
+stocks = {
+    '000001': {
+        'min_quantity': 1000,
+        'name': '平安银行',
+    },
+    '600916': {
+        'min_quantity': 1800,
+        'name': '中国黄金',
+
+    },
+    '002253': {
+        'min_quantity': 1200,
+        'name': '川大智胜',
+    },
+}
+
 if __name__ == "__main__":
-    trader = simulate("000001")
+    code = '002253'
+    trader = simulate(code)
     print(trader)
