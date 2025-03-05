@@ -30,7 +30,7 @@ class BaseTrader:
 
 class HighLowTrader(BaseTrader):
     def __init__(self, cash: int = 30000,
-                 min_quantity: int = 200,
+                 min_quantity: int = 230,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5):
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)

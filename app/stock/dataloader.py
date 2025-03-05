@@ -92,7 +92,7 @@ class KlineReader(BaseReader):
             "klt": "101",  # Daily K-line
             "fqt": "1",    # Forward adjustment
             "end": "20250305",
-            "lmt": "210",  # Limit to 210 records
+            "lmt": "240",  # Limit to 210 records
             "cb": "quote_jp5"  # Callback parameter required by API
         }
 
