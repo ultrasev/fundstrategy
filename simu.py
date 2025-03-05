@@ -38,9 +38,13 @@ class Reporter(BaseModel):
 
 def simulate(code):
     trader = MomentumTrader(cash=20000,
-                            min_quantity=100,
+                            min_quantity=400,
                             transaction_fee_buy=6,
                             transaction_fee_sell=5)
+    # trader = HighLowTrader(cash=20000,
+    #                        min_quantity=300,
+    #                        transaction_fee_buy=6,
+    #                        transaction_fee_sell=5)
     reader = KlineReader(code)
     kline = reader.read()
     data = kline.klines
@@ -71,5 +75,5 @@ def simulate(code):
 
 
 if __name__ == "__main__":
-    trader = simulate("603887")
+    trader = simulate("601138")
     print(trader)

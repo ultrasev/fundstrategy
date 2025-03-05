@@ -73,7 +73,6 @@ class KlineReader(BaseReader):
         with httpx.Client(timeout=10.0) as client:
             response = client.get(url, params=params)
             jsonp = response.text
-            print(jsonp)
             json_str = jsonp[jsonp.index("(")+1:jsonp.rindex(")")]
             data = json.loads(json_str)
             with open(self._path, 'w') as f:
@@ -82,6 +81,6 @@ class KlineReader(BaseReader):
 
 
 if __name__ == "__main__":
-    reader = KlineReader("000001")
+    reader = KlineReader("002154")
     data = reader.read()
     print(data)

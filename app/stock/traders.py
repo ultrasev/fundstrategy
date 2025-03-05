@@ -168,8 +168,8 @@ class MomentumTrader(BaseTrader):
         Buy at close price if conditions are met
         Returns the buy price if successful, None otherwise
         """
-        if self.cash < (close * self.min_quantity + self.transaction_fee_buy):
-            return None
+        # if self.cash < (close * self.min_quantity + self.transaction_fee_buy):
+        #     return None
 
         self.positions.append(Position(
             price=close,
