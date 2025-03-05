@@ -1,3 +1,4 @@
+from app.stock.dataloader import KlimeItem
 from app.stock.dataloader import KlineReader, Kline
 from app.stock.traders import HighLowTrader, MomentumTrader, Position
 
@@ -42,29 +43,23 @@ def simulate(code):
                             transaction_fee_buy=6,
                             transaction_fee_sell=5)
     # trader = HighLowTrader(cash=20000,
-    #                        min_quantity=300,
+    #                        min_quantity=100,
     #                        transaction_fee_buy=6,
     #                        transaction_fee_sell=5)
     reader = KlineReader(code)
     kline = reader.read()
     data = kline.klines
 
-    for line in data:
-        date, open_price, close, high, low, *_ = line
-        open_price = float(open_price)
-        close = float(close)
-        high = float(high)
-        low = float(low)
-
-        trader.trade(low, high, open_price, close, date)
+    for item in data:
+        trader.trade(item)
 
     for p in trader.positions:
         print(p)
     info = {
         'name': kline.name,
         'code': kline.code,
-        'start_price': data[0][1],
-        'end_price': data[-1][2],
+        'start_price': kline.klines[0].open,
+        'end_price': kline.klines[-1].close,
         'return rate': (trader.total / trader.initial_cash - 1) * 100,
         'positions': trader.positions,
         'initial_cash': trader.initial_cash,

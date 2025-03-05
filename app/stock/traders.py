@@ -1,3 +1,4 @@
+from .dataloader import KlimeItem
 from pydantic import BaseModel
 import codefast as cf
 import random
@@ -22,9 +23,9 @@ class BaseTrader:
         self.transaction_fee_sell = transaction_fee_sell
         self.current_price = 0
 
-    def trade(self, low, high, open_price, close, date):
-        self.buy(low, high, open_price, close, date)
-        self.sell(low, high, date)
+    def trade(self, item: KlimeItem):
+        self.buy(item)
+        self.sell(item)
 
 
 class HighLowTrader(BaseTrader):
@@ -40,33 +41,33 @@ class HighLowTrader(BaseTrader):
             raise ValueError("Cash is negative")
         return self.cash + sum(self.current_price * p.quantity for p in self.positions)
 
-    def buy(self, low, high, open_price, close, date):
-        potential_buy_price = round((low + 0.1) * 10) / 10
-        if potential_buy_price <= high:
+    def buy(self, item: KlimeItem):
+        potential_buy_price = round((item.low + 0.1) * 10) / 10
+        if potential_buy_price <= item.high:
             if not self.positions or potential_buy_price < min(p.price for p in self.positions):
                 # Store purchase date for T+1 rule
                 self.positions.append(Position(price=potential_buy_price,
                                                quantity=self.min_quantity,
-                                               purchase_date=date))
+                                               purchase_date=item.date))
                 self.cash -= potential_buy_price * self.min_quantity
                 self.cash -= self.transaction_fee_buy
                 self.current_price = potential_buy_price
                 cf.info(
-                    f"Buy at {potential_buy_price} {date}, cash: {self.cash}, total: {self.total}")
+                    f"Buy at {potential_buy_price} {item.date}, cash: {self.cash}, total: {self.total}")
                 return potential_buy_price
 
         return None
 
-    def sell(self, low, high, current_date):
+    def sell(self, item: KlimeItem):
         if not self.positions:
             return 0
 
         remaining_positions = []
-        sell_price = int(high * 100 / 10) / 10
+        sell_price = int(item.high * 100 / 10) / 10
         any_deal = False
 
         for position in self.positions:
-            if position.purchase_date == current_date:
+            if position.purchase_date == item.date:
                 remaining_positions.append(position)
                 continue
 
@@ -76,7 +77,7 @@ class HighLowTrader(BaseTrader):
                 self.current_price = sell_price
                 x = self.total - sell_price * position.quantity
                 cf.info(
-                    f"Sell at {sell_price} {current_date}, cash: {self.cash}, total: {x}")
+                    f"Sell at {sell_price} {item.date}, cash: {self.cash}, total: {x}")
             else:
                 remaining_positions.append(position)
 
@@ -122,8 +123,8 @@ class MomentumTrader(BaseTrader):
         end_price = self.price_history[-1]
         return (end_price - start_price) / start_price
 
-    def trade(self, low: float, high: float, open_price: float, close: float, date: str):
-        self.price_history.append(close)
+    def trade(self, item: KlimeItem):
+        self.price_history.append(item.close)
 
         # Update T+1 sell restriction
         if self.positions and not self.can_sell:
@@ -136,10 +137,10 @@ class MomentumTrader(BaseTrader):
 
             # Check stop loss first
             if self.positions and self.can_sell:
-                current_return = (close - self.last_buy_price) / \
+                current_return = (item.close - self.last_buy_price) / \
                     self.last_buy_price
                 if current_return <= self.stop_loss:
-                    self.sell(low, high, date)
+                    self.sell(item)
                     self.can_sell = False
                     return
 
@@ -150,8 +151,8 @@ class MomentumTrader(BaseTrader):
             if (short_ma > long_ma and
                 momentum >= self.buy_threshold and
                     not self.positions):
-                self.buy(low, high, open_price, close, date)
-                self.last_buy_price = close
+                self.buy(item)
+                self.last_buy_price = item.close
                 self.can_sell = False
 
             # Sell conditions:
@@ -160,10 +161,10 @@ class MomentumTrader(BaseTrader):
             elif self.positions and self.can_sell and (
                     short_ma < long_ma or
                     momentum <= self.sell_threshold):
-                self.sell(low, high, date)
+                self.sell(item)
                 self.can_sell = False
 
-    def buy(self, low: float, high: float, open_price: float, close: float, date: str) -> float | None:
+    def buy(self, item: KlimeItem) -> float | None:
         """
         Buy at close price if conditions are met
         Returns the buy price if successful, None otherwise
@@ -172,21 +173,21 @@ class MomentumTrader(BaseTrader):
         #     return None
 
         self.positions.append(Position(
-            price=close,
+            price=item.close,
             quantity=self.min_quantity,
-            purchase_date=date
+            purchase_date=item.date
         ))
 
-        self.cash -= close * self.min_quantity
+        self.cash -= item.close * self.min_quantity
         self.cash -= self.transaction_fee_buy
-        self.current_price = close
+        self.current_price = item.close
 
         cf.info("Buy at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-            close, date, self.cash, self.total))
+            item.close, item.date, self.cash, self.total))
 
-        return close
+        return item.close
 
-    def sell(self, low: float, high: float, date: str) -> float | None:
+    def sell(self, item: KlimeItem) -> float | None:
         """
         Sell at close price if conditions are met
         Returns the sell price if successful, None otherwise
@@ -198,22 +199,22 @@ class MomentumTrader(BaseTrader):
         any_deal = False
 
         for position in self.positions:
-            if position.purchase_date == date:  # T+1 rule check
+            if position.purchase_date == item.date:  # T+1 rule check
                 remaining_positions.append(position)
                 continue
 
             any_deal = True
-            self.current_price = high
-            _cash = self.cash + high * position.quantity
+            self.current_price = item.high
+            _cash = self.cash + item.high * position.quantity
             cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                high, date, _cash, self.total))
-            self.cash += high * position.quantity
+                item.high, item.date, _cash, self.total))
+            self.cash += item.high * position.quantity
 
         if any_deal:
             self.cash -= self.transaction_fee_sell
 
         self.positions = remaining_positions
-        return high if any_deal else None
+        return item.high if any_deal else None
 
     @property
     def total(self) -> float:

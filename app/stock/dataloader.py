@@ -13,6 +13,20 @@ class BaseReader:
         pass
 
 
+class KlimeItem(BaseModel):
+    date: str
+    open: float
+    close: float
+    high: float
+    low: float
+    volume: int          # Trading volume
+    amount: float        # Trading amount
+    amplitude: float     # Price amplitude percentage
+    change_percent: float  # Price change percentage
+    change_amount: float   # Price change amount
+    turnover_rate: float   # Turnover rate percentage
+
+
 class Kline(BaseModel):
     code: str
     market: int
@@ -20,7 +34,7 @@ class Kline(BaseModel):
     decimal: int
     dktotal: int
     preKPrice: float
-    klines: list[list[str]]
+    klines: list[KlimeItem]
 
     @classmethod
     def process_klines(cls, data):
@@ -28,7 +42,19 @@ class Kline(BaseModel):
         x = data.copy()
         if isinstance(data['klines'], list):
             x['klines'] = [
-                kline.split(',') if isinstance(kline, str) else kline
+                KlimeItem(
+                    date=parts[0],
+                    open=float(parts[1]),
+                    close=float(parts[2]),
+                    high=float(parts[3]),
+                    low=float(parts[4]),
+                    volume=int(parts[5]),
+                    amount=float(parts[6]),
+                    amplitude=float(parts[7]),
+                    change_percent=float(parts[8]),
+                    change_amount=float(parts[9]),
+                    turnover_rate=float(parts[10])
+                ) if isinstance(kline, str) and (parts := kline.split(',')) else kline
                 for kline in data['klines']
             ]
         return x
