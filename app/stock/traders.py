@@ -26,7 +26,7 @@ class BaseTrader:
 
 
 class HighLowTrader(BaseTrader):
-    def __init__(self, cash: int = 100000,
+    def __init__(self, cash: int = 30000,
                  min_quantity: int = 200,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5):

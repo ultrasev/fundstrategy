@@ -3,13 +3,13 @@ from app.stock.traders import HighLowTrader
 
 
 def simulate(code):
-    trader = HighLowTrader(cash=100000,
-                           min_quantity=200,
+    trader = HighLowTrader(cash=20000,
+                           min_quantity=100,
                            transaction_fee_buy=6,
                            transaction_fee_sell=5)
     reader = KlineReader(code)
     lines = reader.read()
-    for line in lines['data']['klines']:
+    for line in lines:
         date, open_price, close, high, low, *_ = line.split(",")
         open_price = float(open_price)
         close = float(close)
@@ -22,6 +22,7 @@ def simulate(code):
 
 
 if __name__ == "__main__":
-    trader = simulate("000001")
-    print(trader.positions)
+    trader = simulate("601900")
+    for p in trader.positions:
+        print(p)
     print(f"Final cash: {trader.cash}, Final total: {trader.total}")
