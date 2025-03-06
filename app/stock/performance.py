@@ -98,6 +98,45 @@ stocks = {
 }
 
 
+def print_summary(reports: list[Reporter]) -> None:
+    """Print performance summary for all reports"""
+    if not reports:
+        print("No reports available")
+        return
+
+    # Sort reports by return rate in descending order
+    sorted_reports = sorted(reports, key=lambda x: x.return_rate, reverse=True)
+
+    # Calculate statistics
+    return_rates = [r.return_rate for r in reports]
+    avg_return = sum(return_rates) / len(return_rates)
+    max_return = max(return_rates)
+    min_return = min(return_rates)
+
+    print("\n=== Performance Summary ===")
+    print("Individual Stock Performance (Sorted by Return Rate):")
+    print("\n{:<12} {:<8} {:>10} {:>10} {:>12} {:>10}".format(
+        "Stock", "Code", "Start", "End", "Final", "Return(%)"
+    ))
+    print("-" * 70)
+
+    for report in sorted_reports:
+        print("{:<12} {:<8} {:>10.2f} {:>10.2f} {:>12.2f} {:>+10.2f}".format(
+            report.name,
+            report.code,
+            report.start_price,
+            report.end_price,
+            report.final_total,
+            report.return_rate
+        ))
+
+    print("\nStatistics:")
+    print(f"    Average Return: {avg_return:+.2f}%")
+    print(f"    Best Return:    {max_return:+.2f}% ({sorted_reports[0].name})")
+    print(
+        f"    Worst Return:   {min_return:+.2f}% ({sorted_reports[-1].name})")
+
+
 def test_performance():
     n_days = 300
     strategy = 'egrid'
@@ -119,5 +158,4 @@ def test_performance():
 
 if __name__ == "__main__":
     reports = test_performance()
-    for report in reports:
-        print(report)
+    print_summary(reports)
