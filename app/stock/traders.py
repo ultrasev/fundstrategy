@@ -3,12 +3,20 @@ from pydantic import BaseModel
 import codefast as cf
 import random
 import math
+from enum import Enum
+
+
+# Define position states
+class PositionState(Enum):
+    HOLDING = "holding"     # Currently holding the position
+    SOLD = "sold"          # Position has been sold
 
 
 class Position(BaseModel):
     price: float
     quantity: int
     purchase_date: str
+    state: PositionState = PositionState.HOLDING  # Default to holding state
 
 
 class BaseTrader:
@@ -27,6 +35,14 @@ class BaseTrader:
     def trade(self, item: KlimeItem):
         self.buy(item)
         self.sell(item)
+
+    @property
+    def total(self) -> float:
+        x = self.cash
+        for p in self.positions:
+            if p.state == PositionState.HOLDING:
+                x += p.price * p.quantity
+        return x
 
 
 class MomentumTrader(BaseTrader):
@@ -147,11 +163,10 @@ class MomentumTrader(BaseTrader):
 
             any_deal = True
             self.current_price = item.close
-            _cash = self.cash + item.close * position.quantity
-            cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                item.close, item.date, _cash, self.total))
             self.cash += item.close * position.quantity
-
+            position.state = PositionState.SOLD
+            cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
+                item.close, item.date, self.cash, self.total))
         if any_deal:
             self.cash -= self.transaction_fee_sell
 
@@ -223,6 +238,7 @@ class GridTrader(BaseTrader):
                     if position in positions_to_stop:
                         self.current_price = item.close
                         self.cash += self.current_price * position.quantity
+                        position.state = PositionState.SOLD
                         cf.info("Stop Loss at {:.2f} {}, cash: {:.2f}, total: {:.2f}, loss: {:.2%}".format(
                             item.close, item.date, self.cash, self.total, self.stop_loss))
                     else:
@@ -289,13 +305,6 @@ class GridTrader(BaseTrader):
 
         self.positions = remaining_positions
         return item if any_deal else None
-
-    @property
-    def total(self) -> float:
-        """Calculate total assets including cash and positions"""
-        if self.cash < 0:
-            raise ValueError("Cash is negative")
-        return self.cash + sum(self.current_price * p.quantity for p in self.positions)
 
 
 class EnhancedGridTrader(BaseTrader):
@@ -478,9 +487,9 @@ class EnhancedGridTrader(BaseTrader):
                     any_sell = True
                     self.current_price = target_sell_price
                     self.cash += target_sell_price * position.quantity
-                    total = self.total - position.quantity * target_sell_price
+                    position.state = PositionState.SOLD
                     cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                        target_sell_price, item.date, self.cash, total))
+                        target_sell_price, item.date, self.cash, self.total))
                 else:
                     remaining_positions.append(position)
 
@@ -548,13 +557,6 @@ class EnhancedGridTrader(BaseTrader):
         self.execute_orders(item, buy_order, sell_order)
         self.last_close = item.close
         return item
-
-    @property
-    def total(self) -> float:
-        """Calculate total assets including cash and positions"""
-        if self.cash < 0:
-            raise ValueError("Cash is negative")
-        return self.cash + sum(self.current_price * p.quantity for p in self.positions)
 
 
 class TraderFactory:
