@@ -44,10 +44,6 @@ def simulate(code, min_quantity, n_days=40):
                             min_quantity=min_quantity,
                             transaction_fee_buy=6,
                             transaction_fee_sell=5)
-    trader = HighLowTrader(cash=20000,
-                           min_quantity=min_quantity,
-                           transaction_fee_buy=6,
-                           transaction_fee_sell=5)
     trader = EnhancedGridTrader(cash=20000,
                                 min_quantity=min_quantity,
                                 transaction_fee_buy=6,
@@ -103,8 +99,8 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '000710'
-    min_quantity = 2000
+    code = '002824'
+    min_quantity = 1400
     n_days = 300
     trader = simulate(code, min_quantity, n_days)
     print(trader)
