@@ -320,7 +320,7 @@ class EnhancedGridTrader(BaseTrader):
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.2,
+                 grid_size: float = 0.1,
                  volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
                  stop_loss_rate: float = -0.05):  # 5%止损
@@ -501,14 +501,15 @@ class EnhancedGridTrader(BaseTrader):
 
         # Process buy order
         if buy_order and item.low <= buy_order <= item.high:
-            if self.cash >= (buy_order * self.min_quantity + self.transaction_fee_buy):
+            quantity = (self.cash - self.transaction_fee_buy) // buy_order
+            if quantity > 0:
                 self.positions.append(Position(
                     price=buy_order,
-                    quantity=self.min_quantity,
+                    quantity=quantity,
                     purchase_date=item.date
                 ))
 
-                self.cash -= buy_order * self.min_quantity
+                self.cash -= buy_order * quantity
                 self.cash -= self.transaction_fee_buy
                 self.current_price = buy_order
 
