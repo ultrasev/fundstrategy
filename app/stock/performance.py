@@ -36,6 +36,14 @@ class Reporter(BaseModel):
         return indent(text, '    ')
 
 
+def get_max_quantity(code: str, cash: int = 20000):
+    reader = KlineReader(code)
+    kline = reader.read()
+    data = kline.klines
+    initial_price = data[0].open
+    return int(round(cash / initial_price / 100)) * 100 - 100
+
+
 def simulate(code, min_quantity, n_days=40, strategy='momentum'):
     trader = TraderFactory.create_trader(strategy,
                                          cash=20000,
@@ -89,10 +97,27 @@ stocks = {
     },
 }
 
-if __name__ == "__main__":
-    code = '603036'
-    min_quantity = 500
+
+def test_performance():
     n_days = 300
     strategy = 'egrid'
-    trader = simulate(code, min_quantity, n_days, strategy)
-    print(trader)
+    reports = []
+    for code, info in stocks.items():
+        print(f'Testing {info["name"]} ({code})')
+        max_quantity = get_max_quantity(code, cash=20000)
+        print(f'Max quantity: {max_quantity}')
+        while max_quantity > 0:
+            reporter = simulate(code, max_quantity, n_days, strategy)
+            if reporter.return_rate == 0:
+                max_quantity -= 100
+                continue
+            else:
+                reports.append(reporter)
+                break
+    return reports
+
+
+if __name__ == "__main__":
+    reports = test_performance()
+    for report in reports:
+        print(report)
