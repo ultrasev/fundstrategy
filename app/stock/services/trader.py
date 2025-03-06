@@ -23,10 +23,10 @@ class AutoTrader(EnhancedGridTrader):
         predicted_low, predicted_high = self.predict_price_range(open_price)
 
         if open_price > self.last_close:
-            sell_order = self.get_sell_orders(predicted_high)
+            sell_order = self.get_sell_order(predicted_high)
             buy_order = self.get_buy_order(open_price * 0.99)
         else:
-            sell_order = self.get_sell_orders(open_price * 1.01)
+            sell_order = self.get_sell_order(open_price * 1.01)
             buy_order = self.get_buy_order(predicted_low)
 
         print({
@@ -36,14 +36,14 @@ class AutoTrader(EnhancedGridTrader):
 
 
 def test():
-    reader = KlineReader('000001')
+    reader = KlineReader('601988')
     kline = reader.read()
     data = kline.klines
     trader = AutoTrader()
     for item in data:
         trader.trade(item)
 
-    trader.signal(11.6)
+    trader.signal(5.5)
 
 
 if __name__ == "__main__":
