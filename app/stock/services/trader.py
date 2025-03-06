@@ -4,11 +4,11 @@ from app.stock.dataloader import KlineReader
 
 class AutoTrader(EnhancedGridTrader):
     def __init__(self,
-                 cash: int = 30000,
+                 cash: int = 10000,
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.1,
+                 grid_size: float = 0.2,
                  volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
                  stop_loss_rate: float = -0.05):
@@ -43,7 +43,7 @@ def test():
     for item in data:
         trader.trade(item)
 
-    trader.signal(11.8)
+    trader.signal(11.6)
 
 
 if __name__ == "__main__":
