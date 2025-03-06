@@ -340,7 +340,7 @@ class EnhancedGridTrader(BaseTrader):
 
     def get_grid_price(self, price: float) -> float:
         """Calculate the grid price level"""
-        return round(price / self.grid_size) * self.grid_size
+        return round(round(price / self.grid_size) * self.grid_size, 2)
 
     def calculate_price_ranges(self) -> tuple[float, float]:
         """
