@@ -1,9 +1,6 @@
 from app.stock.traders import TraderFactory
-from app.stock.dataloader import KlimeItem
 from app.stock.dataloader import KlineReader, Kline
-from app.stock.traders import (MomentumTrader,
-                               Position,
-                               EnhancedGridTrader)
+from app.stock.traders import Position
 
 from pydantic import BaseModel
 from textwrap import indent
@@ -93,9 +90,9 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '603685'
-    min_quantity = 500
+    code = '601229'
+    min_quantity = 1900
     n_days = 300
-    strategy = 'grid'
+    strategy = 'egrid'
     trader = simulate(code, min_quantity, n_days, strategy)
     print(trader)

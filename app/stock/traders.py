@@ -323,7 +323,7 @@ class EnhancedGridTrader(BaseTrader):
                  grid_size: float = 0.2,
                  volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
-                 stop_loss_rate: float = -0.03):  # 5%止损
+                 stop_loss_rate: float = -0.05):  # 5%止损
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)
         self.grid_size = grid_size
         self.price_history = []
@@ -434,7 +434,7 @@ class EnhancedGridTrader(BaseTrader):
             if position.purchase_date == item.date:  # Skip T+1
                 continue
             # Calculate current loss rate
-            loss_rate = (item.close - position.price) / position.price
+            loss_rate = (item.low - position.price) / position.price
             if loss_rate <= self.stop_loss_rate:
                 positions_to_stop.append(position)
         return positions_to_stop
