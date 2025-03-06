@@ -36,10 +36,17 @@ class AutoTrader(EnhancedGridTrader):
 
 
 def test():
-    reader = KlineReader('002207')
+    reader = KlineReader('601229')
     kline = reader.read()
-    data = kline.klines
-    trader = AutoTrader(grid_size=0.1)
+    data = kline.klines[-40:]
+    trader = AutoTrader(grid_size=0.1,
+                        cash=10000,
+                        min_quantity=100,
+                        transaction_fee_buy=6,
+                        transaction_fee_sell=5,
+                        volatility_window=12,
+                        volatility_multiplier=1.5,
+                        stop_loss_rate=-0.05)
     for item in data:
         trader.trade(item)
 
