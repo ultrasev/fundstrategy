@@ -326,7 +326,7 @@ class EnhancedGridTrader(BaseTrader):
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.1,
+                 grid_size: float = 0.2,
                  volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
                  stop_loss_rate: float = -0.05):  # 5%止损

@@ -90,7 +90,7 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '600926'
+    code = '000001'
     min_quantity = 600
     cash = 10000
     n_days = 300
