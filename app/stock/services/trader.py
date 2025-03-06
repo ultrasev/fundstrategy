@@ -2,7 +2,7 @@ from app.stock.traders import EnhancedGridTrader
 from app.stock.dataloader import KlineReader
 
 
-class Manager(EnhancedGridTrader):
+class AutoTrader(EnhancedGridTrader):
     def __init__(self,
                  cash: int = 30000,
                  min_quantity: int = 100,
@@ -15,6 +15,9 @@ class Manager(EnhancedGridTrader):
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell,
                          grid_size, volatility_window, volatility_multiplier, stop_loss_rate)
         self.last_close = None
+
+    def load_positions(self):
+        pass
 
     def signal(self, open_price: float) -> bool:
         predicted_low, predicted_high = self.predict_price_range(open_price)
@@ -36,7 +39,7 @@ def test():
     reader = KlineReader('000001')
     kline = reader.read()
     data = kline.klines
-    trader = Manager()
+    trader = AutoTrader()
     for item in data:
         trader.trade(item)
 
