@@ -36,9 +36,9 @@ class Reporter(BaseModel):
         return indent(text, '    ')
 
 
-def simulate(code, min_quantity, n_days=40, strategy='momentum'):
+def simulate(code, min_quantity, n_days=40, strategy='momentum', cash=20000):
     trader = TraderFactory.create_trader(strategy,
-                                         cash=20000,
+                                         cash=cash,
                                          min_quantity=min_quantity,
                                          transaction_fee_buy=6,
                                          transaction_fee_sell=5)
@@ -90,9 +90,10 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '600000'
-    min_quantity = 900
+    code = '601229'
+    min_quantity = 1600
+    cash = 10000
     n_days = 300
     strategy = 'egrid'
-    trader = simulate(code, min_quantity, n_days, strategy)
+    trader = simulate(code, min_quantity, n_days, strategy, cash)
     print(trader)

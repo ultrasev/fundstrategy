@@ -323,7 +323,7 @@ class EnhancedGridTrader(BaseTrader):
                  grid_size: float = 0.2,
                  volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
-                 stop_loss_rate: float = -0.5):  # 5%止损
+                 stop_loss_rate: float = -0.05):  # 5%止损
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)
         self.grid_size = grid_size
         self.price_history = []
