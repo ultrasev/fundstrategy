@@ -439,7 +439,7 @@ class EnhancedGridTrader(BaseTrader):
                 positions_to_stop.append(position)
         return positions_to_stop
 
-    def execute_stop_loss(self, item: KlimeItem, positions_to_stop: list[Position]) -> None:
+    def cut_loss(self, item: KlimeItem, positions_to_stop: list[Position]) -> None:
         """Execute stop loss orders"""
         if not positions_to_stop:
             return
@@ -469,7 +469,7 @@ class EnhancedGridTrader(BaseTrader):
         # Check stop loss first
         positions_to_stop = self.check_stop_loss(item)
         if positions_to_stop:
-            self.execute_stop_loss(item, positions_to_stop)
+            self.cut_loss(item, positions_to_stop)
             return  # Skip normal trading if stop loss triggered
 
         # Process sell order
