@@ -1,7 +1,7 @@
+from app.stock.traders import TraderFactory
 from app.stock.dataloader import KlimeItem
 from app.stock.dataloader import KlineReader, Kline
-from app.stock.traders import (HighLowTrader,
-                               MomentumTrader,
+from app.stock.traders import (MomentumTrader,
                                Position,
                                EnhancedGridTrader)
 
@@ -39,31 +39,25 @@ class Reporter(BaseModel):
         return indent(text, '    ')
 
 
-def simulate(code, min_quantity, n_days=40):
-    trader = MomentumTrader(cash=20000,
-                            min_quantity=min_quantity,
-                            transaction_fee_buy=6,
-                            transaction_fee_sell=5)
-    trader = EnhancedGridTrader(cash=20000,
-                                min_quantity=min_quantity,
-                                transaction_fee_buy=6,
-                                transaction_fee_sell=5)
+def simulate(code, min_quantity, n_days=40, strategy='momentum'):
+    trader = TraderFactory.create_trader(strategy,
+                                         cash=20000,
+                                         min_quantity=min_quantity,
+                                         transaction_fee_buy=6,
+                                         transaction_fee_sell=5)
     reader = KlineReader(code)
     kline = reader.read()
     data = kline.klines
-    start_price = 0
 
     for item in data[-n_days:]:
-        item = trader.trade(item)
-        if item and not start_price:
-            start_price = item.open
+        trader.trade(item)
 
     for p in trader.positions:
         print(p)
     info = {
         'name': kline.name,
         'code': kline.code,
-        'start_price': start_price,
+        'start_price': data[-n_days].open if n_days < len(data) else data[0].open,
         'end_price': data[-1].close,
         'return rate': (trader.total / trader.initial_cash - 1) * 100,
         'positions': trader.positions,
@@ -99,8 +93,9 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '002824'
-    min_quantity = 1400
+    code = '002765'
+    min_quantity = 3000
     n_days = 300
-    trader = simulate(code, min_quantity, n_days)
+    strategy = 'enhanced_grid'
+    trader = simulate(code, min_quantity, n_days, strategy)
     print(trader)

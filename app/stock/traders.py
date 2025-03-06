@@ -528,3 +528,23 @@ class EnhancedGridTrader(BaseTrader):
         if self.cash < 0:
             raise ValueError("Cash is negative")
         return self.cash + sum(self.current_price * p.quantity for p in self.positions)
+
+
+class TraderFactory:
+
+    @staticmethod
+    def create_trader(name: str, **kwargs) -> BaseTrader:
+        strategies = {
+            'momentum': MomentumTrader,
+            'grid': GridTrader,
+            'enhanced_grid': EnhancedGridTrader
+        }
+
+        if name not in strategies:
+            raise ValueError(
+                "Invalid strategy name. Available strategies: {}".format(
+                    list(strategies.keys())
+                )
+            )
+
+        return strategies[name](**kwargs)
