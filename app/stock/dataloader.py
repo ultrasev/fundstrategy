@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic import BaseModel
 import httpx
 import json
@@ -19,6 +20,7 @@ class KlimeItem(BaseModel):
     close: float
     high: float
     low: float
+    current: float = Field(default=0)
     volume: int          # Trading volume
     amount: float        # Trading amount
     amplitude: float     # Price amplitude percentage

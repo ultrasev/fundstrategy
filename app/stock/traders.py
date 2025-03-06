@@ -197,7 +197,9 @@ class GridTrader(BaseTrader):
     def should_sell(self, current_price: float, position_price: float) -> bool:
         """Check if we should sell positions bought at position_price"""
         grid_diff = (current_price - position_price) / self.grid_size
-        return grid_diff >= 1.0
+        threshold = abs(current_price * self.stop_loss * 3 / self.grid_size)
+        # cf.info('grid trader selling threshold: {} x grid_size'.format(round(threshold, 2)))
+        return grid_diff >= threshold
 
     def trade(self, item: KlimeItem):
         # Initialize base price if not set
@@ -220,17 +222,14 @@ class GridTrader(BaseTrader):
                 for position in self.positions:
                     if position in positions_to_stop:
                         self.current_price = item.close
-                        self.cash += item.close * position.quantity
+                        self.cash += self.current_price * position.quantity
                         cf.info("Stop Loss at {:.2f} {}, cash: {:.2f}, total: {:.2f}, loss: {:.2%}".format(
                             item.close, item.date, self.cash, self.total, self.stop_loss))
                     else:
                         remaining_positions.append(position)
 
-                if positions_to_stop:
-                    self.cash -= self.transaction_fee_sell
-
+                self.cash -= self.transaction_fee_sell
                 self.positions = remaining_positions
-                return item
 
         current_grid_price = self.get_grid_price(item.close)
 
@@ -278,10 +277,9 @@ class GridTrader(BaseTrader):
             # Check if this position should be sold
             if self.should_sell(item.close, position.price):
                 any_deal = True
-                self.current_price = item.close
-                _cash = self.cash + item.close * position.quantity
+                cash = self.cash + item.close * position.quantity
                 cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                    item.close, item.date, _cash, self.total))
+                    item.close, item.date, cash, self.total))
                 self.cash += item.close * position.quantity
             else:
                 remaining_positions.append(position)
