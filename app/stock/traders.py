@@ -171,10 +171,12 @@ class GridTrader(BaseTrader):
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.2):  # Grid interval size
+                 grid_size: float = 0.2,  # Grid interval size
+                 stop_loss: float = -0.03):  # 3% stop loss
         super().__init__(cash, min_quantity, transaction_fee_buy, transaction_fee_sell)
         self.grid_size = grid_size
         self.base_price = None  # Will be set on first trade
+        self.stop_loss = stop_loss
 
     def get_grid_price(self, price: float) -> float:
         """Calculate the grid price level"""
@@ -203,11 +205,38 @@ class GridTrader(BaseTrader):
             self.base_price = self.get_grid_price(item.close)
             return
 
+        # Check stop loss first
+        if self.positions:
+            positions_to_stop = []
+            for position in self.positions:
+                if position.purchase_date == item.date:  # Skip T+1
+                    continue
+                current_return = (item.close - position.price) / position.price
+                if current_return <= self.stop_loss:
+                    positions_to_stop.append(position)
+
+            if positions_to_stop:
+                remaining_positions = []
+                for position in self.positions:
+                    if position in positions_to_stop:
+                        self.current_price = item.close
+                        self.cash += item.close * position.quantity
+                        cf.info("Stop Loss at {:.2f} {}, cash: {:.2f}, total: {:.2f}, loss: {:.2%}".format(
+                            item.close, item.date, self.cash, self.total, self.stop_loss))
+                    else:
+                        remaining_positions.append(position)
+
+                if positions_to_stop:
+                    self.cash -= self.transaction_fee_sell
+
+                self.positions = remaining_positions
+                return item
+
         current_grid_price = self.get_grid_price(item.close)
 
         # Try to buy if price hits lower grid levels
         if self.should_buy(current_grid_price):
-            item = self.buy(item)
+            self.buy(item)
 
         # Try to sell positions that hit profit target
         item = self.sell(item)

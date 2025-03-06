@@ -93,8 +93,8 @@ stocks = {
 }
 
 if __name__ == "__main__":
-    code = '002765'
-    min_quantity = 3000
+    code = '000001'
+    min_quantity = 600
     n_days = 300
     strategy = 'enhanced_grid'
     trader = simulate(code, min_quantity, n_days, strategy)
