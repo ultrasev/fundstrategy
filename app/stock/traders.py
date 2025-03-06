@@ -212,6 +212,7 @@ class GridTrader(BaseTrader):
     def should_sell(self, current_price: float, position_price: float) -> bool:
         """Check if we should sell positions bought at position_price"""
         grid_diff = (current_price - position_price) / self.grid_size
+        # 3:1 的风险比
         threshold = abs(current_price * self.stop_loss * 3 / self.grid_size)
         # cf.info('grid trader selling threshold: {} x grid_size'.format(round(threshold, 2)))
         return grid_diff >= threshold
