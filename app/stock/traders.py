@@ -266,12 +266,13 @@ class GridTrader(BaseTrader):
 
         # Try to buy if price hits lower grid levels
         if self.should_buy(current_grid_price):
-            self.buy(item)
+            item = self.buy(item)
 
         # Try to sell positions that hit profit target
-        self.sell(item)
+        item = self.sell(item)
+        return item
 
-    def buy(self, item: KlimeItem) -> float | None:
+    def buy(self, item: KlimeItem) -> KlimeItem:
         """Buy at current price if conditions are met"""
         if self.cash < (item.close * self.min_quantity + self.transaction_fee_buy):
             return None
@@ -289,9 +290,9 @@ class GridTrader(BaseTrader):
         cf.info("Buy at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
             item.close, item.date, self.cash, self.total))
 
-        return item.close
+        return item
 
-    def sell(self, item: KlimeItem) -> float | None:
+    def sell(self, item: KlimeItem) -> KlimeItem:
         """Sell positions that meet profit target"""
         if not self.positions:
             return None
@@ -319,7 +320,7 @@ class GridTrader(BaseTrader):
             self.cash -= self.transaction_fee_sell
 
         self.positions = remaining_positions
-        return item.close if any_deal else None
+        return item if any_deal else None
 
     @property
     def total(self) -> float:
@@ -468,12 +469,13 @@ class EnhancedGridTrader(BaseTrader):
         remaining_positions = []
         for position in self.positions:
             if position in positions_to_stop:
-                sell_price = position.price * (1 + self.stop_loss_rate)
-                x = self.cash + sell_price * position.quantity
+                self.current_price = position.price * (1 + self.stop_loss_rate)
+                self.cash += self.current_price * position.quantity
+                total = self.total - self.current_price * position.quantity
                 cf.info("Stop Loss at {:.2f} {}, cash: {:.2f}, total: {:.2f}, loss: {:.2%}".format(
-                    sell_price, item.date, x, self.total,
+                    self.current_price, item.date, self.cash, total,
                     self.stop_loss_rate))
-                self.cash += sell_price * position.quantity
+
             else:
                 remaining_positions.append(position)
 
@@ -499,7 +501,6 @@ class EnhancedGridTrader(BaseTrader):
 
         # Only execute if price reached our target
         if item.high >= target_sell_price:
-            _total = self.total
             for position in self.positions:
                 if position.purchase_date == item.date:  # T+1 rule
                     remaining_positions.append(position)
@@ -509,10 +510,9 @@ class EnhancedGridTrader(BaseTrader):
                     any_sell = True
                     self.current_price = target_sell_price
                     self.cash += target_sell_price * position.quantity
-                    _total += position.quantity * \
-                        (target_sell_price - position.price)
+                    total = self.total - position.quantity * target_sell_price
                     cf.info("Sell at {:.2f} {}, cash: {:.2f}, total: {:.2f}".format(
-                        target_sell_price, item.date, self.cash, _total))
+                        target_sell_price, item.date, self.cash, total))
                 else:
                     remaining_positions.append(position)
 
