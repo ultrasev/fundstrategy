@@ -1,3 +1,4 @@
+from .config import BANKS
 from app.stock.traders import TraderFactory
 from app.stock.dataloader import KlineReader, Kline
 from app.stock.traders import Position
@@ -105,7 +106,7 @@ def print_summary(reports: list[Reporter]) -> None:
         return
 
     # Sort reports by return rate in descending order
-    sorted_reports = sorted(reports, key=lambda x: x.return_rate, reverse=True)
+    sorted_reports = sorted(reports, key=lambda x: x.end_price / x.start_price, reverse=True)
 
     # Calculate statistics
     return_rates = [r.return_rate for r in reports]
@@ -115,17 +116,19 @@ def print_summary(reports: list[Reporter]) -> None:
 
     print("\n=== Performance Summary ===")
     print("Individual Stock Performance (Sorted by Return Rate):")
-    print("\n{:<12} {:<8} {:>10} {:>10} {:>12} {:>10}".format(
-        "Stock", "Code", "Start", "End", "Final", "Return(%)"
+    print("\n{:<12} {:<8} {:>10} {:>10} {:>10} {:>12} {:>10}".format(
+        "Stock", "Code", "Start(¥)", "End(¥)", "Price(%)", "Final(¥)", "Return(%)"
     ))
-    print("-" * 70)
+    print("-" * 82)
 
     for report in sorted_reports:
-        print("{:<12} {:<8} {:>10.2f} {:>10.2f} {:>12.2f} {:>+10.2f}".format(
+        price_change = (report.end_price / report.start_price - 1) * 100
+        print("{:<12} {:<8} {:>10.2f} {:>10.2f} {:>+10.2f} {:>12.2f} {:>+10.2f}".format(
             report.name,
             report.code,
             report.start_price,
             report.end_price,
+            price_change,
             report.final_total,
             report.return_rate
         ))
@@ -133,26 +136,24 @@ def print_summary(reports: list[Reporter]) -> None:
     print("\nStatistics:")
     print(f"    Average Return: {avg_return:+.2f}%")
     print(f"    Best Return:    {max_return:+.2f}% ({sorted_reports[0].name})")
-    print(
-        f"    Worst Return:   {min_return:+.2f}% ({sorted_reports[-1].name})")
+    print(f"    Worst Return:   {min_return:+.2f}% ({sorted_reports[-1].name})")
 
 
 def test_performance():
     n_days = 300
     strategy = 'egrid'
     reports = []
-    for code, info in stocks.items():
+    for code, info in BANKS.items():
         print(f'Testing {info["name"]} ({code})')
         max_quantity = get_max_quantity(code, cash=20000)
         print(f'Max quantity: {max_quantity}')
-        while max_quantity > 0:
+        best_reporter = None
+        for r in [0.8, 0.9, 0.95]:
+            max_quantity = int(round(max_quantity * r / 100)) * 100
             reporter = simulate(code, max_quantity, n_days, strategy)
-            if reporter.return_rate == 0:
-                max_quantity -= 100
-                continue
-            else:
-                reports.append(reporter)
-                break
+            if best_reporter is None or reporter.return_rate > best_reporter.return_rate:
+                best_reporter = reporter
+        reports.append(best_reporter)
     return reports
 
 
