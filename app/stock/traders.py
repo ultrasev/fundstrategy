@@ -501,7 +501,8 @@ class EnhancedGridTrader(BaseTrader):
 
         # Process buy order
         if buy_order and item.low <= buy_order <= item.high:
-            quantity = (self.cash - self.transaction_fee_buy) // buy_order
+            quantity = (
+                self.cash - self.transaction_fee_buy) // buy_order // 100*100
             if quantity > 0:
                 self.positions.append(Position(
                     price=buy_order,
