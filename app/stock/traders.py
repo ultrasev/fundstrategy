@@ -449,9 +449,9 @@ class EnhancedGridTrader(BaseTrader):
             if position in positions_to_stop:
                 self.current_price = position.price * (1 + self.stop_loss_rate)
                 self.cash += self.current_price * position.quantity
-                total = self.total - self.current_price * position.quantity
+                position.state = PositionState.SOLD
                 cf.info("Stop Loss at {:.2f} {}, cash: {:.2f}, total: {:.2f}, loss: {:.2%}".format(
-                    self.current_price, item.date, self.cash, total,
+                    self.current_price, item.date, self.cash, self.total,
                     self.stop_loss_rate))
 
             else:
@@ -567,7 +567,8 @@ class TraderFactory:
         strategies = {
             'momentum': MomentumTrader,
             'grid': GridTrader,
-            'enhanced_grid': EnhancedGridTrader
+            'enhanced_grid': EnhancedGridTrader,
+            'egrid': EnhancedGridTrader,
         }
 
         if name not in strategies:
