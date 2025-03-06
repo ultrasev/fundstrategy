@@ -8,7 +8,7 @@ class AutoTrader(EnhancedGridTrader):
                  min_quantity: int = 100,
                  transaction_fee_buy: int = 6,
                  transaction_fee_sell: int = 5,
-                 grid_size: float = 0.2,
+                 grid_size: float = 0.1,
                  volatility_window: int = 12,
                  volatility_multiplier: float = 1.5,
                  stop_loss_rate: float = -0.05):
@@ -36,14 +36,14 @@ class AutoTrader(EnhancedGridTrader):
 
 
 def test():
-    reader = KlineReader('601988')
+    reader = KlineReader('002207')
     kline = reader.read()
     data = kline.klines
-    trader = AutoTrader()
+    trader = AutoTrader(grid_size=0.1)
     for item in data:
         trader.trade(item)
 
-    trader.signal(5.5)
+    trader.signal(5.15)
 
 
 if __name__ == "__main__":
