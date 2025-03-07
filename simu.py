@@ -94,6 +94,6 @@ if __name__ == "__main__":
     min_quantity = 600
     cash = 10000
     n_days = 300
-    strategy = 'egrid'
+    strategy = 'grid'
     trader = simulate(code, min_quantity, n_days, strategy, cash)
     print(trader)

@@ -37,6 +37,7 @@ class BaseTrader:
         self.transaction_fee_buy = transaction_fee_buy
         self.transaction_fee_sell = transaction_fee_sell
         self.current_price = 0
+        self.trade_count = 0
 
     def trade(self, item: KlimeItem):
         self.buy(item)
@@ -187,6 +188,23 @@ class MomentumTrader(BaseTrader):
         return self.cash + sum(self.current_price * p.quantity for p in self.positions)
 
 
+class DummyTrader(BaseTrader):
+    def pend(self, item: KlimeItem):
+        return item
+
+    def complete(self, item: KlimeItem):
+        return item
+
+    def buy(self, item: KlimeItem):
+        return item
+
+    def sell(self, item: KlimeItem):
+        return item
+
+    def trade(self, item: KlimeItem):
+        return item
+
+
 class GridTrader(BaseTrader):
     def __init__(self, cash: int = 30000,
                  min_quantity: int = 100,
@@ -226,7 +244,7 @@ class GridTrader(BaseTrader):
     def trade(self, item: KlimeItem):
         # Initialize base price if not set
         if self.base_price is None:
-            self.base_price = self.get_grid_price(item.close)
+            self.base_price = self.get_grid_price(item.open)
             return
 
         # Check stop loss first
@@ -235,7 +253,7 @@ class GridTrader(BaseTrader):
             for position in self.positions:
                 if position.purchase_date == item.date:  # Skip T+1
                     continue
-                current_return = (item.close - position.price) / position.price
+                current_return = (item.low - position.price) / position.price
                 if current_return <= self.stop_loss:
                     positions_to_stop.append(position)
 
