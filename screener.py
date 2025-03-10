@@ -10,7 +10,8 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 logging.basicConfig(level=logging.INFO,
-                   format='%(asctime)s - %(levelname)s - %(message)s')
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class StockScreener:
     def __init__(self, db_path='stocks.duckdb'):
@@ -65,16 +66,30 @@ class StockScreener:
     def get_stock_data(self, start_time: str, end_time: str) -> pd.DataFrame:
         """获取指定时间段的股票数据"""
         query = """
-        SELECT code, price, volume, main_inflow, created_at,
-               main_inflow_ratio, turnover, name,
-               LEAD(price) OVER (PARTITION BY code ORDER BY created_at) as next_price,
-               LEAD(volume) OVER (PARTITION BY code ORDER BY created_at) as next_volume
-        FROM stocks
-        WHERE created_at >= CAST(? AS TIMESTAMP)
-          AND created_at <= CAST(? AS TIMESTAMP)
+        WITH daily_first_prices AS (
+            SELECT DISTINCT code, price as daily_base_price, name
+            FROM (
+                SELECT code, price, name,
+                       ROW_NUMBER() OVER (PARTITION BY code ORDER BY created_at) as rn
+                FROM stocks
+                WHERE date_trunc('day', created_at) = date_trunc('day', CAST(? AS TIMESTAMP))
+            ) t
+            WHERE rn = 1
+        ),
+        price_changes AS (
+            SELECT s.code, s.price, s.volume, s.main_inflow, s.created_at,
+                   s.main_inflow_ratio, s.turnover, d.name, s.change_percentage
+            FROM stocks s
+            JOIN daily_first_prices d ON s.code = d.code
+            WHERE s.created_at >= CAST(? AS TIMESTAMP)
+              AND s.created_at <= CAST(? AS TIMESTAMP)
+        )
+        SELECT *
+        FROM price_changes
+        WHERE ABS(change_percentage) <= 10
         ORDER BY created_at
         """
-        return self.conn.execute(query, [start_time, end_time]).df()
+        return self.conn.execute(query, [start_time, start_time, end_time]).df()
 
     def resample_data(self, group: pd.DataFrame) -> pd.DataFrame:
         """对数据进行重采样，减少噪音"""
@@ -82,16 +97,24 @@ class StockScreener:
         group['created_at'] = pd.to_datetime(group['created_at'])
         group.set_index('created_at', inplace=True)
 
-        # 按分钟重采样，使用'min'而不是'T'
-        resampled = group.resample(f'{self.params["resample_minutes"]}min').agg({
+        # 检查必要的列是否存在
+        columns_to_resample = {
             'price': 'last',
             'volume': 'sum',
             'main_inflow': 'sum',
             'main_inflow_ratio': 'mean',
-            'turnover': 'sum',
-            'name': 'last',
-            'code': 'last'
-        }).dropna()
+            'change_percentage': 'last',  # 只保留最后的涨跌幅
+            'code': 'last',
+            'name': 'last'
+        }
+
+        # 如果turnover列存在，添加到重采样列表中
+        if 'turnover' in group.columns:
+            columns_to_resample['turnover'] = 'sum'
+
+        # 重采样数据
+        resampled = group.resample(f'{self.params["resample_minutes"]}min').agg(
+            columns_to_resample).dropna()
 
         return resampled.reset_index()
 
@@ -103,6 +126,10 @@ class StockScreener:
         # 重采样数据
         group = self.resample_data(group)
         if len(group) < self.params['window_size']:
+            return None
+
+        # 检查最新的涨跌幅是否超过4%
+        if abs(group['change_percentage'].iloc[-1]) > 4.0:
             return None
 
         recent_data = group.tail(self.params['window_size'])
@@ -127,12 +154,16 @@ class StockScreener:
         inflow_trend = np.diff(inflows).mean()
 
         # 计算波动率
-        price_volatility = recent_data['price'].std() / recent_data['price'].mean()
+        price_volatility = recent_data['price'].std(
+        ) / recent_data['price'].mean()
 
         # 计算价格趋势的稳定性（R方值）
         try:
-            _, residuals, _, _, _ = np.polyfit(x, recent_data['price'].values, 1, full=True)
-            r_squared = 1 - residuals[0] / (len(x) * recent_data['price'].var()) if len(residuals) > 0 else 0
+            _, residuals, _, _, _ = np.polyfit(
+                x, recent_data['price'].values, 1, full=True)
+            r_squared = 1 - \
+                residuals[0] / (len(x) * recent_data['price'].var()
+                                ) if len(residuals) > 0 else 0
         except:
             r_squared = 0
 
@@ -142,7 +173,7 @@ class StockScreener:
             'avg_inflow': avg_inflow,
             'inflow_trend': inflow_trend,
             'volatility': price_volatility,
-            'r_squared': r_squared
+            'r_squared': r_squared,
         }
 
     def screen_stocks(self, start_time: str, end_time: str) -> list:
@@ -165,7 +196,7 @@ class StockScreener:
                 metrics['price_slope'] > self.params['min_price_slope'],  # 价格上涨
                 metrics['price_slope'] < self.params['max_price_slope'],  # 但不能涨太快
                 metrics['r_squared'] > 0.6,  # 价格走势较为稳定
-                metrics['volatility'] < 0.02  # 波动率小于2%
+                metrics['volatility'] < 0.02,  # 波动率小于2%
             ]
 
             if all(conditions):
@@ -176,17 +207,20 @@ class StockScreener:
                     'price': latest['price'],
                     'main_inflow': latest['main_inflow'],
                     'main_inflow_ratio': latest['main_inflow_ratio'],
-                    'metrics': metrics
+                    'metrics': metrics,
+                    # 添加涨跌幅到结果中
+                    'change_percentage': latest['change_percentage']
                 })
 
         return sorted(results, key=lambda x: x['metrics']['avg_inflow'], reverse=True)
+
 
 def main():
     screener = StockScreener()
 
     # 使用2025年3月10日9:30到10:30的数据
     start_time = '2025-03-10 09:30:00'
-    end_time = '2025-03-10 10:30:00'
+    end_time = '2025-03-10 10:10:00'
     logging.info(f"分析时间范围: {start_time} 到 {end_time}")
 
     # 先检查数据情况
@@ -200,17 +234,19 @@ def main():
         return
 
     logging.info(f"找到 {len(results)} 只符合条件的股票:")
-    for stock in results:
+    for stock in results[:10]:
         logging.info(
             f"股票代码: {stock['code']}, "
             f"股票名称: {stock['name']}, "
             f"当前价: {stock['price']:.2f}, "
             f"主力净流入: {stock['main_inflow']/10000:.2f}万, "
-            f"主力净流入占比: {stock['main_inflow_ratio']:.2%}, "
+            f"主力净流入占比: {stock['main_inflow_ratio']:.2}, "
             f"价格斜率: {stock['metrics']['price_slope']:.2%}/分钟, "
             f"价格稳定性: {stock['metrics']['r_squared']:.2%}, "
-            f"波动率: {stock['metrics']['volatility']:.2%}"
+            f"波动率: {stock['metrics']['volatility']:.2%}, "
+            f"涨跌幅: {stock['change_percentage']:.2f}%"
         )
+
 
 if __name__ == "__main__":
     main()
