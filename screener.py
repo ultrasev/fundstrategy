@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO,
 
 
 class StockScreener:
-    def __init__(self, db_path='stocks.duckdb'):
+    def __init__(self, db_path='/tmp/db.duckdb'):
         """初始化筛选器"""
         self.conn = duckdb.connect(db_path)
         self.params = {
