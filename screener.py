@@ -154,8 +154,7 @@ class StockScreener:
         inflow_trend = np.diff(inflows).mean()
 
         # 计算波动率
-        price_volatility = recent_data['price'].std(
-        ) / recent_data['price'].mean()
+        price_volatility = recent_data['price'].std() / recent_data['price'].mean()
 
         # 计算价格趋势的稳定性（R方值）
         try:
@@ -234,7 +233,7 @@ def main():
         return
 
     logging.info(f"找到 {len(results)} 只符合条件的股票:")
-    for stock in results[:10]:
+    for stock in results[:20]:
         logging.info(
             f"股票代码: {stock['code']}, "
             f"股票名称: {stock['name']}, "
