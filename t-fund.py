@@ -110,21 +110,21 @@ async def process_single_code(code: str):
     )
 
     # Calculate results for both strategies
+    initial_price = float(data[0]['DWJZ'])
     t_cost, t_shares, t_last_price = t_strategy.calculate()
     dynamic_cost, dynamic_shares, dynamic_last_price = dynamic_strategy.calculate()
 
     # Calculate metrics
     t_avg_cost = t_cost / t_shares if t_shares else Decimal('0')
     t_profit = (t_last_price - t_avg_cost) * t_shares
-    t_profit_rate = t_profit / t_cost
+    t_profit_rate = t_profit / (initial_price * t_shares)
 
     dynamic_avg_cost = dynamic_cost / \
         dynamic_shares if dynamic_shares else Decimal('0')
     dynamic_profit = (dynamic_last_price - dynamic_avg_cost) * dynamic_shares
-    dynamic_profit_rate = dynamic_profit / dynamic_cost
+    dynamic_profit_rate = dynamic_profit / (initial_price * dynamic_shares)
 
     # Default profit
-    initial_price = float(data[0]['DWJZ'])
     final_price = float(data[-1]['DWJZ'])
     default_profit_rate = (final_price / initial_price - 1) * 100
 
@@ -176,4 +176,4 @@ async def compare_strategies(codes: list[str]):
     print(markdown_table)
 
 if __name__ == "__main__":
-    asyncio.run(test_dynamic(code="018122"))
+    asyncio.run(compare_strategies(STRATEGY_CODES))
