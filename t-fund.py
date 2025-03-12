@@ -54,7 +54,7 @@ class TStrategy(AbstractStrategy):
                 cf.info(
                     f"Sell {shares_to_sell} shares at {current_price} on {date}, fee: {fee}")
 
-        return total_cost, total_shares
+        return total_cost, total_shares, float(self.data[-1]['DWJZ'])
 
 
 async def main():
@@ -64,13 +64,18 @@ async def main():
         initial_shares=10000,
         threshold_rate=1.0
     )
-    cost, shares = strategy.calculate()
+    cost, shares, last_price = strategy.calculate()
     avg_cost = cost / shares if shares else Decimal('0')
+    profit = (last_price - avg_cost) * shares
+    profit_rate = profit / cost
 
     print("Strategy Results:")
     print("Total Cost: {:.4f}".format(cost))
     print("Total Shares: {}".format(shares))
     print("Average Cost per Share: {:.4f}".format(avg_cost))
+    print("Profit: {:.4f}".format(profit))
+    print("Profit Rate: {:.4f}%".format(profit_rate * 100))
+
 
 if __name__ == "__main__":
     asyncio.run(main())
