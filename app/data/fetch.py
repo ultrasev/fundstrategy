@@ -4,7 +4,8 @@ from typing import TypedDict, List, Callable
 from abc import ABC, abstractmethod
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class FundData(TypedDict):
@@ -42,17 +43,19 @@ async def fetch_fund_data(fund_code: str, page_size: int = 100) -> List[FundData
     results = []
 
     async with httpx.AsyncClient() as client:
-        for index in range(1, 1 + (page_size // 20)):
+        for index in range(1, 1 + max(1, (page_size // 20))):
             logging.info(f"Fetching page {index} of {page_size // 20}")
             params['pageIndex'] = index
             response = await client.get(url, params=params, headers=headers)
             data = response.json()
+
             if not data or 'Data' not in data or 'LSJZList' not in data['Data']:
                 raise ValueError(f"Invalid data format for fund {fund_code}")
             fund_list = list(data['Data']['LSJZList'])
             results.extend(fund_list)
+
     results.sort(key=lambda x: x['FSRQ'])  # sort by date
-    return results
+    return results[-page_size:]
 
 
 async def fetch_fund_data_with_retry(fund_code: str, max_retries: int = 3) -> List[FundData]:
