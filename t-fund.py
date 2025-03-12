@@ -112,7 +112,7 @@ class TStrategy(AbstractStrategy):
 
 
 async def main():
-    data = await fetch_fund_data("000688", 100)
+    data = await fetch_fund_data("018125", 100)
     strategy = TStrategy(
         data,
         initial_shares=10000,
@@ -130,7 +130,10 @@ async def main():
     print("Initial price: {:.4f}".format(float(data[0]['DWJZ'])))
     print("Average Cost per Share: {:.4f}".format(avg_cost))
     print("Profit: {:.4f}".format(profit))
-    print("Profit Rate: {:.4f}%".format(profit_rate * 100))
+    print("Profit Rate: \033[91m{:.4f}%\033[0m".format(profit_rate * 100))
+    print("Default profit rate: \033[93m{:.4f}%\033[0m".format(
+        (last_price / float(data[0]['DWJZ']) - 1) * 100
+    ))
 
 
 if __name__ == "__main__":
