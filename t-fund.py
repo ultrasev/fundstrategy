@@ -156,22 +156,20 @@ class DynamicTStrategy(AbstractStrategy):
                     cf.info(msg)
 
             elif change_rate > self.threshold_rate and total_shares > self.initial_shares:
-                # Calculate the multiple based on how much the rate exceeds the threshold
                 multiple = int(change_rate / self.threshold_rate)
-                shares_to_sell = 1000 * multiple
-
-                # Find all holdings that meet the condition
                 eligible_holds = [
                     (idx, hold_date, hold_price)
                     for idx, (hold_date, hold_price) in enumerate(holds)
                     if datetime.strptime(hold_date, '%Y-%m-%d') <= (datetime.strptime(date, '%Y-%m-%d') - timedelta(days=7))
                     and current_price > hold_price
                 ]
-                sold_indexes = []
+                if not eligible_holds:
+                    cf.info('No eligible holds to sell on {}'.format(date))
+                    continue
 
-                # Sell as many as possible, up to the desired amount
+                sold_indexes = []
                 for idx, _, _ in eligible_holds:
-                    if len(sold_indexes) >= shares_to_sell:
+                    if len(sold_indexes) >= min(multiple, len(holds)-minimal_holds):
                         break
                     sold_indexes.append(idx)
                     total_shares -= 1000
@@ -194,7 +192,7 @@ class DynamicTStrategy(AbstractStrategy):
 
 
 async def main():
-    data = await fetch_fund_data("018125", 100)
+    data = await fetch_fund_data("010003", 100)
     strategy = TStrategy(
         data,
         initial_shares=10000,
