@@ -1,3 +1,4 @@
+import json
 import httpx
 import asyncio
 from typing import TypedDict, List, Callable
@@ -56,6 +57,26 @@ async def fetch_fund_data(fund_code: str, page_size: int = 100) -> List[FundData
 
     results.sort(key=lambda x: x['FSRQ'])  # sort by date
     return results[-page_size:]
+
+
+class HistoryReader:
+    def __init__(self, code: str, lmt: int = 100) -> None:
+        self.code = code
+        self.lmt = lmt
+
+    async def read(self) -> List[FundData]:
+        fpath = '/tmp/{}-{}.json'.format(self.code, self.lmt)
+        try:
+            with open(fpath, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            data = await fetch_fund_data(self.code, self.lmt)
+            with open(fpath, 'w') as f:
+                json.dump(data, f)
+            return data
+        except Exception as e:
+            print(f"Error reading {fpath}: {str(e)}")
+            return []
 
 
 async def fetch_fund_data_with_retry(fund_code: str, max_retries: int = 3) -> List[FundData]:
