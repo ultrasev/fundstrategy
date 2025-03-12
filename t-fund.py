@@ -32,16 +32,20 @@ class TStrategy(AbstractStrategy):
                  threshold_rate: float = 1) -> None:
         super().__init__(data, initial_shares, max_shares, sell_holds, threshold_rate)
 
-    def _can_sell(self, current_date: str, holds: List[Tuple[str, int]]) -> bool:
+    def _can_sell(self, current_date: str,
+                  holds: List[Tuple[str, int]],
+                  current_price: float) -> bool:
         """
         Check if there are any holdings older than 7 days that can be sold
+        and if the current price is higher than the purchase price.
         """
         current_dt = datetime.strptime(current_date, '%Y-%m-%d')
         seven_days_ago = current_dt - timedelta(days=7)
+        holds.sort(key=lambda x: x[1])
 
-        for hold_date, _ in holds:
-            hold_dt = datetime.strptime(hold_date, '%Y-%m-%d')
-            if hold_dt <= seven_days_ago:
+        for date, price in holds:
+            hold_dt = datetime.strptime(date, '%Y-%m-%d')
+            if hold_dt <= seven_days_ago and current_price > price:
                 return True
         return False
 
@@ -49,7 +53,8 @@ class TStrategy(AbstractStrategy):
         date = self.data[0]['FSRQ']
         minimal_holds = self.initial_shares // self.sell_holds
         holds = [
-            (date, self.sell_holds)
+            # Store the price along with the date
+            (date, float(self.data[0]['DWJZ']))
             for _ in range(minimal_holds)
         ]
         total_shares = self.initial_shares
@@ -71,7 +76,8 @@ class TStrategy(AbstractStrategy):
                 shares_to_buy = 1000
                 total_shares += shares_to_buy
                 total_cost += current_price * shares_to_buy
-                holds.append((date, shares_to_buy))
+                # Store the price along with the date
+                holds.append((date, current_price))
                 msg = 'Buy {} shares at {} on {}, total_shares: {}'.format(
                     shares_to_buy,
                     current_price,
@@ -81,10 +87,10 @@ class TStrategy(AbstractStrategy):
                 cf.info(msg)
 
             elif change_rate > self.threshold_rate and total_shares > self.initial_shares:
-                # Check if we have any holdings older than 7 days
-                if not self._can_sell(date, holds):
+                # Check if we have any holdings older than 7 days and the price is higher
+                if not self._can_sell(date, holds, current_price):
                     cf.info(
-                        'Skip selling on {} - no holdings older than 7 days'.format(date))
+                        'Skip selling on {} - no holdings older than 7 days or price not higher'.format(date))
                     continue
 
                 shares_to_sell = 1000
@@ -106,7 +112,7 @@ class TStrategy(AbstractStrategy):
 
 
 async def main():
-    data = await fetch_fund_data("002810", 100)
+    data = await fetch_fund_data("000688", 100)
     strategy = TStrategy(
         data,
         initial_shares=10000,
