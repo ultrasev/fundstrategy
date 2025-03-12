@@ -12,10 +12,12 @@ class AbstractStrategy(ABC):
                  data: List[Dict],
                  initial_shares: int = 3000,
                  max_shares: int = 10000,
+                 sell_holds: int = 1000,
                  threshold_rate: float = 1.0) -> None:
         self.data = data
         self.initial_shares = initial_shares
         self.max_shares = max_shares
+        self.sell_holds = sell_holds
         self.threshold_rate = threshold_rate
 
     @abstractmethod
@@ -24,19 +26,33 @@ class AbstractStrategy(ABC):
 
 
 class TStrategy(AbstractStrategy):
-    def __init__(self, data: List[Dict], initial_shares: int = 3000, max_shares: int = 10000, threshold_rate: float = 1) -> None:
-        super().__init__(data, initial_shares, max_shares, threshold_rate)
+    def __init__(self, data: List[Dict], initial_shares: int = 3000,
+                 sell_holds: int = 1000,
+                 max_shares: int = 10000,
+                 threshold_rate: float = 1) -> None:
+        super().__init__(data, initial_shares, max_shares, sell_holds, threshold_rate)
 
     def calculate(self, ) -> Tuple[Decimal, int]:
-        total_shares = self.initial_shares  # Initial shares
-        total_cost = float(self.data[0]['DWJZ']) * total_shares  # Initial cost
-        cf.info(
-            f"Initial cost: {total_cost}, shares: {total_shares} , date: {self.data[0]['FSRQ']}")
-        # Process each day after the first day
-        for i in range(1, len(self.data)):
-            current_price = float(self.data[i]['DWJZ'])
-            change_rate = float(self.data[i]['JZZZL'])
-            date = self.data[i]['FSRQ']
+        date = self.data[0]['FSRQ']
+        minimal_holds = self.initial_shares // self.sell_holds
+        holds = [
+            (date, self.sell_holds)
+            for _ in range(minimal_holds)
+        ]
+        total_shares = self.initial_shares
+        total_cost = float(self.data[0]['DWJZ']) * total_shares
+        cf.info({
+            'date': date,
+            'total_cost': total_cost,
+            'total_shares': total_shares,
+            'minimal_holds': minimal_holds,
+            'holds': holds
+        })
+
+        for i, item in enumerate(self.data[1:]):
+            current_price = float(item['DWJZ'])
+            change_rate = float(item['JZZZL'])
+            date = item['FSRQ']
 
             if change_rate < -self.threshold_rate:
                 shares_to_buy = 1000
@@ -62,6 +78,7 @@ async def main():
     strategy = TStrategy(
         data,
         initial_shares=10000,
+        sell_holds=1000,
         threshold_rate=1.0
     )
     cost, shares, last_price = strategy.calculate()
