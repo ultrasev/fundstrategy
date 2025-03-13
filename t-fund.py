@@ -48,7 +48,7 @@ class Experiments:
             data,
             initial_shares=initial_shares,
             sell_holds=1000,
-            threshold_rate=1
+            threshold_rate=1.0
         )
 
         # Calculate results for both strategies
@@ -95,39 +95,40 @@ class MultiExperiments:
     async def process_single_code(self, code: str):
         reader = HistoryReader(code, 100)
         data = await reader.read()
+        initial_price = float(data[0]['DWJZ'])
+        final_price = float(data[-1]['DWJZ'])
+        initial_shares = 10000
 
         # Initialize strategies
         t_strategy = TStrategy(
             data,
-            initial_shares=10000,
+            initial_shares=initial_shares,
             sell_holds=1000,
             threshold_rate=1.0
         )
         dynamic_strategy = DynamicTStrategy(
             data,
-            initial_shares=10000,
+            initial_shares=initial_shares,
             sell_holds=1000,
-            threshold_rate=0.7
+            threshold_rate=1.0
         )
 
         # Calculate results for both strategies
-        initial_price = float(data[0]['DWJZ'])
         t_cost, t_shares, t_last_price = t_strategy.calculate()
         dynamic_cost, dynamic_shares, dynamic_last_price = dynamic_strategy.calculate()
 
         # Calculate metrics
         t_avg_cost = t_cost / t_shares if t_shares else Decimal('0')
         t_profit = (t_last_price - t_avg_cost) * t_shares
-        t_profit_rate = t_profit / (initial_price * t_shares)
+        t_profit_rate = t_profit / (initial_price * initial_shares)
 
         dynamic_avg_cost = dynamic_cost / \
             dynamic_shares if dynamic_shares else Decimal('0')
         dynamic_profit = (dynamic_last_price -
                           dynamic_avg_cost) * dynamic_shares
-        dynamic_profit_rate = dynamic_profit / (initial_price * dynamic_shares)
+        dynamic_profit_rate = dynamic_profit / (initial_price * initial_shares)
 
         # Default profit
-        final_price = float(data[-1]['DWJZ'])
         default_profit_rate = (final_price / initial_price - 1) * 100
 
         return {
@@ -179,5 +180,5 @@ class MultiExperiments:
 
 
 if __name__ == "__main__":
-    asyncio.run(Experiments(code="007509").compare_strategies())
+    asyncio.run(Experiments(code="009994").compare_strategies())
     # asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
