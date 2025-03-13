@@ -72,11 +72,16 @@ class HistoryReader:
         except FileNotFoundError:
             data = await fetch_fund_data(self.code, self.lmt)
             with open(fpath, 'w') as f:
-                json.dump(data, f)
+                json.dump(data, f, ensure_ascii=False, indent=4)
             return data
         except Exception as e:
             print(f"Error reading {fpath}: {str(e)}")
             return []
+
+
+async def read_history(code: str, lmt: int = 100) -> List[FundData]:
+    reader = HistoryReader(code, lmt)
+    return await reader.read()
 
 
 async def fetch_fund_data_with_retry(fund_code: str, max_retries: int = 3) -> List[FundData]:
