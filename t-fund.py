@@ -198,5 +198,5 @@ class MultiExperiments:
 
 
 if __name__ == "__main__":
-    # asyncio.run(Experiments(code="019993").compare_strategies())
-    asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
+    asyncio.run(Experiments(code="519185").compare_strategies())
+    # asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
