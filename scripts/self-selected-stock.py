@@ -116,7 +116,7 @@ class HoldingMonitor(AbstractMonitor):
 
 
 STOCKS = [
-    #  {'code': '603993', 'name': '洛阳钼业'},
+     {'code': '603993', 'name': '洛阳钼业'},
     {'code': '000680', 'name': '山推股份'},
     {'code': '002384', 'name': '东山精密'},
     {'code': '603887', 'name': '城地香江'}]

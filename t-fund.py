@@ -43,14 +43,14 @@ class Experiments:
             data,
             initial_shares=initial_shares,
             sell_holds=1000,
-            threshold_rate=1.0
+            threshold_rate=0.5
         )
 
         dynamic_strategy = DynamicTStrategy(
             data,
             initial_shares=initial_shares,
             sell_holds=1000,
-            threshold_rate=1.0
+            threshold_rate=0.5
         )
 
         # Calculate results for both strategies
@@ -198,5 +198,5 @@ class MultiExperiments:
 
 
 if __name__ == "__main__":
-    asyncio.run(Experiments(code="519185").compare_strategies())
+    asyncio.run(Experiments(code="008299").compare_strategies())
     # asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
