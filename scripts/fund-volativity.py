@@ -1,9 +1,10 @@
+import pandas as pd
 from app.fund.configs import STRATEGY_CODES
 from app.data.fetch import read_history
 import numpy as np
 import asyncio
 from typing import List, Dict
-import pandas as pd
+import json
 
 
 async def calculate_volatility(fund_code: str) -> float:
@@ -35,13 +36,12 @@ async def analyze_volatility(fund_codes: List[str]) -> Dict[str, float]:
     results = {}
 
     # Process funds in chunks
-    chunk_size = 5
+    chunk_size = 20
     for i in range(0, len(fund_codes), chunk_size):
         print(f"Processing {i} of {len(fund_codes)}")
         chunk = fund_codes[i:i + chunk_size]
         chunk_results = await asyncio.gather(*(calculate_volatility(code) for code in chunk))
         results.update(dict(zip(chunk, chunk_results)))
-        await asyncio.sleep(1)  # Rate limiting
 
     return results
 
@@ -84,9 +84,12 @@ async def main():
     # Calculate volatility for all strategy codes
     volatility_results = await analyze_volatility(STRATEGY_CODES)
 
-    # Generate and save markdown report
-    report = generate_markdown_report(volatility_results)
-    print(report)
+    # Save results to JSON file
+    with open('/tmp/volativity.json', 'w') as f:
+        json.dump(volatility_results, f, indent=2)
+
+    print(f"Results saved to /tmp/volativity.json")
+    print(f"Total funds processed: {len(volatility_results)}")
 
 
 if __name__ == "__main__":
