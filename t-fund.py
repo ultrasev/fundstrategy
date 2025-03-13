@@ -1,3 +1,5 @@
+import numpy as np
+import json
 from app.fund.configs import STRATEGY_CODES
 import asyncio
 from app.data.fetch import fetch_fund_data
@@ -149,6 +151,9 @@ class MultiExperiments:
                 pass
         results.sort(key=lambda x: x['default'])
 
+        with open('/tmp/volativity.json', 'r') as f:
+            volatility = json.load(f)
+
         # Calculate averages
         default_avg = sum(result['default']
                           for result in results) / len(results)
@@ -158,27 +163,40 @@ class MultiExperiments:
                                    for result in results) / len(results)
 
         markdown_table = """
-    | Code   | Default | TStrategy | DynamicT |
-    |--------|---------|-----------|----------|
+    | Code   | Default | TStrategy | DynamicT | Volatility |
+    |--------|---------|-----------|----------|----------|
     """
+        x = []
         for result in results:
-            markdown_table += "| {code} | {default:.4f} | {t_strategy:.4f} | {dynamic_strategy:.4f} |\n".format(
+            markdown_table += "| {code} | {default:.4f} | {t_strategy:.4f} | {dynamic_strategy:.4f} | {volatility:.4f} |\n".format(
                 code=result['code'],
                 default=result['default'],
                 t_strategy=result['t_strategy'],
-                dynamic_strategy=result['dynamic_strategy']
+                dynamic_strategy=result['dynamic_strategy'],
+                volatility=volatility.get(result['code'], 0)
             )
+            x.append({
+                'code': result['code'],
+                'default': result['default'],
+                't_strategy': result['t_strategy'],
+                'dynamic_strategy': result['dynamic_strategy'],
+                'volatility': volatility.get(result['code'], 0)
+            })
 
         # Add average row
-        markdown_table += "| **Average** | **{default_avg:.4f}** | **{t_strategy_avg:.4f}** | **{dynamic_strategy_avg:.4f}** |\n".format(
+        markdown_table += "| **Average** | **{default_avg:.4f}** | **{t_strategy_avg:.4f}** | **{dynamic_strategy_avg:.4f}** | **{volatility_avg:.4f}** |\n".format(
             default_avg=default_avg,
             t_strategy_avg=t_strategy_avg,
-            dynamic_strategy_avg=dynamic_strategy_avg
+            dynamic_strategy_avg=dynamic_strategy_avg,
+            volatility_avg=np.mean([v for v in volatility.values() if v])
         )
 
         print(markdown_table)
 
+        with open('/tmp/fund-performance.json', 'w') as f:
+            json.dump(x, f, indent=2)
+
 
 if __name__ == "__main__":
-    asyncio.run(Experiments(code="017512").compare_strategies())
-    # asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
+    # asyncio.run(Experiments(code="019993").compare_strategies())
+    asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
