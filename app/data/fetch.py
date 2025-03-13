@@ -1,9 +1,12 @@
+import json
 import httpx
 import asyncio
-from datetime import datetime
 from typing import TypedDict, List, Callable
-import json
 from abc import ABC, abstractmethod
+import logging
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class FundData(TypedDict):
@@ -32,24 +35,53 @@ async def fetch_fund_data(fund_code: str, page_size: int = 100) -> List[FundData
     params = {
         'fundCode': fund_code,
         'pageIndex': 1,
-        'pageSize': page_size,
+        'pageSize': 20,
     }
     headers = {
         'Referer': 'https://fundf10.eastmoney.com/',
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
     }
+    results = []
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params, headers=headers)
-        data = response.json()
+        for index in range(1, 1 + max(1, (page_size // 20))):
+            logging.info(f"Fetching page {index} of {page_size // 20}")
+            params['pageIndex'] = index
+            response = await client.get(url, params=params, headers=headers)
+            data = response.json()
 
-        # Add error handling for None data
-        if not data or 'Data' not in data or 'LSJZList' not in data['Data']:
-            raise ValueError(f"Invalid data format for fund {fund_code}")
+            if not data or 'Data' not in data or 'LSJZList' not in data['Data']:
+                raise ValueError(f"Invalid data format for fund {fund_code}")
+            fund_list = list(data['Data']['LSJZList'])
+            results.extend(fund_list)
 
-        # Convert to list before reversing
-        fund_list = list(data['Data']['LSJZList'])
-        return list(reversed(fund_list))  # Return from oldest to newest
+    results.sort(key=lambda x: x['FSRQ'])  # sort by date
+    return results[-page_size:]
+
+
+class HistoryReader:
+    def __init__(self, code: str, lmt: int = 100) -> None:
+        self.code = code
+        self.lmt = lmt
+
+    async def read(self) -> List[FundData]:
+        fpath = '/tmp/{}-{}.json'.format(self.code, self.lmt)
+        try:
+            with open(fpath, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            data = await fetch_fund_data(self.code, self.lmt)
+            with open(fpath, 'w') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            return data
+        except Exception as e:
+            print(f"Error reading {fpath}: {str(e)}")
+            return []
+
+
+async def read_history(code: str, lmt: int = 100) -> List[FundData]:
+    reader = HistoryReader(code, lmt)
+    return await reader.read()
 
 
 async def fetch_fund_data_with_retry(fund_code: str, max_retries: int = 3) -> List[FundData]:
