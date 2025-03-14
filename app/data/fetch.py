@@ -44,7 +44,7 @@ async def fetch_fund_data(fund_code: str, page_size: int = 100) -> List[FundData
     results = []
 
     async with httpx.AsyncClient() as client:
-        for index in range(1, 1 + max(1, (page_size // 20))):
+        for index in range(1, 2 + max(1, (page_size // 20))):
             logging.info(f"Fetching page {index} of {page_size // 20}")
             params['pageIndex'] = index
             response = await client.get(url, params=params, headers=headers)
