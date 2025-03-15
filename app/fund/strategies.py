@@ -140,13 +140,16 @@ class DynamicTStrategy(AbstractStrategy):
             if change_rate < -self.threshold_rate:
                 # Calculate the multiple based on how much the rate exceeds the threshold
                 multiple = int(abs(change_rate) / self.threshold_rate)
+                _shares = 0
                 for _ in range(multiple):
                     shares_to_buy = 1000
                     total_shares += shares_to_buy
                     total_cost += current_price * shares_to_buy
                     holds.append((date, current_price))
+                    _shares += shares_to_buy
+                if _shares:
                     msg = 'Buy {} shares at {} on {}, total_shares: {}'.format(
-                        shares_to_buy,
+                        _shares,
                         current_price,
                         date,
                         total_shares
@@ -174,12 +177,13 @@ class DynamicTStrategy(AbstractStrategy):
                     total_cost -= current_price * 1000
                     fee = round(current_price * 1000 * 0.005, 2)
                     total_cost += fee
+                if sold_indexes:
                     msg = 'Sell {} shares at {} on {}, total_shares: {}, fee: {}'.format(
-                        1000,
+                        1000 * len(sold_indexes),
                         current_price,
                         date,
                         total_shares,
-                        fee
+                        round(fee * len(sold_indexes), 2)
                     )
                     cf.info(msg)
 
