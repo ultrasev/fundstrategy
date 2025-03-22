@@ -139,7 +139,8 @@ class DynamicTStrategy(AbstractStrategy):
 
             if change_rate < -self.threshold_rate:
                 # Calculate the multiple based on how much the rate exceeds the threshold
-                multiple = int(abs(change_rate) / self.threshold_rate)
+                multiple = int(
+                    round(abs(change_rate) / self.threshold_rate, 0))
                 _shares = 0
                 for _ in range(multiple):
                     shares_to_buy = 1000
@@ -157,7 +158,7 @@ class DynamicTStrategy(AbstractStrategy):
                     cf.info(msg)
 
             elif change_rate > self.threshold_rate and total_shares > self.initial_shares:
-                multiple = int(change_rate / self.threshold_rate)
+                multiple = int(round(change_rate / self.threshold_rate))
                 eligible_holds = [
                     (idx, hold_date, hold_price)
                     for idx, (hold_date, hold_price) in enumerate(holds)
