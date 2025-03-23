@@ -10,9 +10,9 @@ from app.data.fetch import HistoryReader
 
 
 class Experiments:
-    def __init__(self, code: str, threshold_rate: float):
+    def __init__(self, code: str, threshold_rate: float, days: int = 20):
         self.code = code
-        self.reader = HistoryReader(code, 20)
+        self.reader = HistoryReader(code, days)
         self.threshold_rate = threshold_rate
 
     async def single_strategy(self, strategy: TStrategy | DynamicTStrategy):
@@ -199,6 +199,7 @@ class MultiExperiments:
 
 
 if __name__ == "__main__":
-    asyncio.run(Experiments(code="004206",
-                threshold_rate=1.0).compare_strategies())
+    asyncio.run(Experiments(code="008190",
+                threshold_rate=1.0,
+                days=40).compare_strategies())
     # asyncio.run(MultiExperiments(STRATEGY_CODES).compare_strategies())
